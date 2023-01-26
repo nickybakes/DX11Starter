@@ -29,6 +29,11 @@ private:
 	void LoadShaders(); 
 	void CreateGeometry();
 
+	/// <summary>
+	/// Updates the ImGui at the beginning of each frame.
+	/// </summary>
+	void UpdateImGui(float deltaTime, float totalTime);
+
 	std::vector<std::shared_ptr<Mesh>> meshes;
 
 	// Note the usage of ComPtr below
