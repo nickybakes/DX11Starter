@@ -7,6 +7,7 @@
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_dx11.h"
 #include "ImGui/imgui_impl_win32.h"
+#include "BufferStructs.h"
 
 // Needed for a helper function to load pre-compiled shader files
 #pragma comment(lib, "d3dcompiler.lib")
@@ -103,6 +104,19 @@ void Game::Init()
 	//ImGui::StyleColorsLight();
 	//ImGui::StyleColorsClassic();
 
+
+	// Get size as the next multiple of 16 (instead of hardcoding a size here!)
+	unsigned int size = sizeof(VertexShaderExternalData);
+	size = (size + 15) / 16 * 16; // This will work even if the struct size changes
+
+	// Describe the constant buffer
+	D3D11_BUFFER_DESC cbDesc = {}; // Sets struct to all zeros
+	cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cbDesc.ByteWidth = size; // Must be a multiple of 16
+	cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	cbDesc.Usage = D3D11_USAGE_DYNAMIC;
+
+	device->CreateBuffer(&cbDesc, 0, vsConstantBuffer.GetAddressOf());
 }
 
 // --------------------------------------------------------
@@ -288,6 +302,11 @@ void Game::OnResize()
 	DXCore::OnResize();
 }
 
+bool showDemoWindow;
+
+DirectX::XMFLOAT4 colorTint = XMFLOAT4(1.0f, 0.5f, 0.5f, 1.0f);
+DirectX::XMFLOAT3 offset = XMFLOAT3(0.25f, 0.0f, 0.0f);
+
 
 void Game::UpdateImGui(float deltaTime, float totalTime)
 {
@@ -305,7 +324,25 @@ void Game::UpdateImGui(float deltaTime, float totalTime)
 	input.SetKeyboardCapture(io.WantCaptureKeyboard);
 	input.SetMouseCapture(io.WantCaptureMouse);
 	// Show the demo window
-	ImGui::ShowDemoWindow();
+	if(showDemoWindow)
+		ImGui::ShowDemoWindow();
+
+
+	ImGui::Begin("Game Info", nullptr, ImGuiWindowFlags_NoCollapse);
+	ImGui::Text("Window Size: %d x %d", windowWidth, windowHeight);
+	ImGui::Text("FPS: %.f", ImGui::GetIO().Framerate);
+
+	if (ImGui::Button("Toggle Demo Window"))
+	{
+		showDemoWindow = !showDemoWindow;
+	}
+
+	ImGui::NewLine();
+	ImGui::DragFloat4("Color Tint", &colorTint.x);
+	ImGui::DragFloat3("Offset", &offset.x);
+
+	ImGui::End();
+
 }
 
 // --------------------------------------------------------
@@ -335,6 +372,21 @@ void Game::Draw(float deltaTime, float totalTime)
 		// Clear the depth buffer (resets per-pixel occlusion information)
 		context->ClearDepthStencilView(depthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
+
+	VertexShaderExternalData vsData;
+	vsData.colorTint = colorTint;
+	vsData.offset = offset;
+
+	D3D11_MAPPED_SUBRESOURCE mappedBuffer = {};
+	context->Map(vsConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedBuffer);
+	memcpy(mappedBuffer.pData, &vsData, sizeof(vsData));
+	context->Unmap(vsConstantBuffer.Get(), 0);
+
+	context->VSSetConstantBuffers(
+		0, // Which slot (register) to bind the buffer to?
+		1, // How many are we activating? Can do multiple at once
+		vsConstantBuffer.GetAddressOf()); // Array of buffers (or the address of one)
+
 
 	//loop through our vector of mesh pointers and draw each one!
 	for (std::shared_ptr<Mesh> mesh : meshes)
