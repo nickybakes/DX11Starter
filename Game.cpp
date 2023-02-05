@@ -190,6 +190,9 @@ void Game::LoadShaders()
 }
 
 
+std::vector<DirectX::XMFLOAT3> positions;
+std::vector<DirectX::XMFLOAT3> rotations;
+std::vector<DirectX::XMFLOAT3> scales;
 
 // --------------------------------------------------------
 // Creates the geometry we're going to draw - a single triangle for now
@@ -267,15 +270,15 @@ void Game::CreateGeometry()
 
 	};
 	unsigned int mesh3Indices[] = {
-		
-		0, 1, 4, 
+
+		0, 1, 4,
 		1, 2, 4,
 		2, 3, 4,
 		3, 0, 4,
 		6, 1, 0,
 		7, 2, 1,
 		8, 3, 2,
-		5, 0, 3,};
+		5, 0, 3, };
 	std::shared_ptr<Mesh> mesh3 = std::make_shared<Mesh>(
 		mesh3Vertices,
 		9,
@@ -287,6 +290,14 @@ void Game::CreateGeometry()
 
 	//finally, add the meshes to our vector
 	meshes = { mesh1, mesh2, mesh3 };
+
+	entities = { std::make_shared<Entity>(mesh1), std::make_shared<Entity>(mesh2), std::make_shared<Entity>(mesh3), std::make_shared<Entity>(mesh1), std::make_shared<Entity>(mesh2) };
+
+	for (int i = 0; i < entities.size(); i++) {
+		positions.push_back(entities[i]->GetTransform()->GetPosition());
+		rotations.push_back(entities[i]->GetTransform()->GetPitchYawRoll());
+		scales.push_back(entities[i]->GetTransform()->GetScale());
+	}
 }
 
 
@@ -305,8 +316,6 @@ void Game::OnResize()
 bool showDemoWindow;
 
 DirectX::XMFLOAT4 colorTint = XMFLOAT4(1.0f, 0.5f, 0.5f, 1.0f);
-DirectX::XMFLOAT3 offset = XMFLOAT3(0.25f, 0.0f, 0.0f);
-
 
 void Game::UpdateImGui(float deltaTime, float totalTime)
 {
@@ -324,7 +333,7 @@ void Game::UpdateImGui(float deltaTime, float totalTime)
 	input.SetKeyboardCapture(io.WantCaptureKeyboard);
 	input.SetMouseCapture(io.WantCaptureMouse);
 	// Show the demo window
-	if(showDemoWindow)
+	if (showDemoWindow)
 		ImGui::ShowDemoWindow();
 
 
@@ -338,8 +347,26 @@ void Game::UpdateImGui(float deltaTime, float totalTime)
 	}
 
 	ImGui::NewLine();
-	ImGui::DragFloat4("Color Tint", &colorTint.x);
-	ImGui::DragFloat3("Offset", &offset.x);
+	ImGui::ColorEdit4("Color Tint", &colorTint.x);
+
+	if (ImGui::TreeNode("Entities")) {
+		for (int i = 0; i < entities.size(); i++)
+		{
+			char title[10];
+			sprintf_s(title, "Entity %d", i);
+			ImGui::PushID(i);
+			if (ImGui::TreeNode(title)) {
+				ImGui::DragFloat3("Position", &positions[i].x);
+				ImGui::DragFloat3("Rotation", &rotations[i].x);
+				ImGui::DragFloat3("Scale", &scales[i].x);
+
+				ImGui::TreePop();
+			}
+			ImGui::PopID();
+		}
+		ImGui::TreePop();
+	}
+
 
 	ImGui::End();
 
@@ -351,6 +378,18 @@ void Game::UpdateImGui(float deltaTime, float totalTime)
 void Game::Update(float deltaTime, float totalTime)
 {
 	UpdateImGui(deltaTime, totalTime);
+
+	positions[0].x = DirectX::XMScalarSin(totalTime);
+	positions[1].x = DirectX::XMScalarSin(totalTime);
+	rotations[2].z = totalTime;
+	positions[3].y = DirectX::XMScalarSin(totalTime);
+	positions[4].y = DirectX::XMScalarSin(totalTime);
+
+	for (int i = 0; i < entities.size(); i++) {
+		entities[i]->GetTransform()->SetPosition(positions[i]);
+		entities[i]->GetTransform()->SetRotation(rotations[i]);
+		entities[i]->GetTransform()->SetScale(scales[i]);
+	}
 	// Example input checking: Quit if the escape key is pressed
 	if (Input::GetInstance().KeyDown(VK_ESCAPE))
 		Quit();
@@ -375,28 +414,17 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	VertexShaderExternalData vsData;
 	vsData.colorTint = colorTint;
-	vsData.offset = offset;
 
-	D3D11_MAPPED_SUBRESOURCE mappedBuffer = {};
-	context->Map(vsConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedBuffer);
-	memcpy(mappedBuffer.pData, &vsData, sizeof(vsData));
-	context->Unmap(vsConstantBuffer.Get(), 0);
-
-	context->VSSetConstantBuffers(
-		0, // Which slot (register) to bind the buffer to?
-		1, // How many are we activating? Can do multiple at once
-		vsConstantBuffer.GetAddressOf()); // Array of buffers (or the address of one)
-
-
-	//loop through our vector of mesh pointers and draw each one!
-	for (std::shared_ptr<Mesh> mesh : meshes)
+	////loop through our vector of mesh pointers and draw each one!
+	for (std::shared_ptr<Entity> entity : entities)
 	{
-		mesh->Draw();
+		entity->Draw(context, vsConstantBuffer, vsData);
 	}
 
 	//draw ImGui
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
 
 
 	// Frame END

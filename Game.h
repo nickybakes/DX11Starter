@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 #include "Mesh.h"
+#include "Entity.h"
 
 
 class Game 
@@ -35,6 +36,7 @@ private:
 	void UpdateImGui(float deltaTime, float totalTime);
 
 	std::vector<std::shared_ptr<Mesh>> meshes;
+	std::vector<std::shared_ptr<Entity>> entities;
 
 	// Note the usage of ComPtr below
 	//  - This is a smart pointer for objects that abide by the
