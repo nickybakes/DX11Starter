@@ -1,5 +1,5 @@
 #include "Transform.h"
-using namespace DirectX;
+
 
 Transform::Transform() {
 	position = XMFLOAT3(0, 0, 0);
@@ -56,6 +56,39 @@ XMFLOAT3 Transform::GetPitchYawRoll()
 	return rotation;
 }
 
+DirectX::XMFLOAT3 Transform::GetRight()
+{
+	XMVECTOR axis = XMVectorSet(1, 0, 0, 0);
+	XMVECTOR rotationVector = XMQuaternionRotationRollPitchYaw(rotation.x, rotation.y, rotation.z);
+
+	XMVECTOR direction = XMVector3Rotate(axis, rotationVector);
+	XMFLOAT3 returnValue;
+	XMStoreFloat3(&returnValue, direction);
+	return returnValue;
+}
+
+DirectX::XMFLOAT3 Transform::GetUp()
+{
+	XMVECTOR axis = XMVectorSet(0, 1, 0, 0);
+	XMVECTOR rotationVector = XMQuaternionRotationRollPitchYaw(rotation.x, rotation.y, rotation.z);
+
+	XMVECTOR direction = XMVector3Rotate(axis, rotationVector);
+	XMFLOAT3 returnValue;
+	XMStoreFloat3(&returnValue, direction);
+	return returnValue;
+}
+
+DirectX::XMFLOAT3 Transform::GetForward()
+{
+	XMVECTOR axis = XMVectorSet(0, 0, 1, 0);
+	XMVECTOR rotationVector = XMQuaternionRotationRollPitchYaw(rotation.x, rotation.y, rotation.z);
+
+	XMVECTOR direction = XMVector3Rotate(axis, rotationVector);
+	XMFLOAT3 returnValue;
+	XMStoreFloat3(&returnValue, direction);
+	return returnValue;
+}
+
 XMFLOAT3 Transform::GetScale()
 {
 	return scale;
@@ -100,6 +133,18 @@ void Transform::MoveAbsolute(XMFLOAT3 offset)
 {
 	position = XMFLOAT3(position.x + offset.x, position.y + offset.y, position.z + offset.z);
 	worldMatrixDirty = true;
+}
+
+void Transform::MoveRelative(float x, float y, float z)
+{
+	XMVECTOR absoluteMoveVector = XMVectorSet(x, y, z, 0);
+	XMVECTOR rotationVector = XMQuaternionRotationRollPitchYaw(rotation.x, rotation.y, rotation.z);
+
+	XMVECTOR relativeMoveVector = XMVector3Rotate(absoluteMoveVector, rotationVector);
+
+	XMVECTOR newPosition = XMLoadFloat3(&position);
+	newPosition += relativeMoveVector;
+	XMStoreFloat3(&position, newPosition);
 }
 
 void Transform::Rotate(float pitch, float yaw, float roll)
