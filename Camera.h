@@ -17,6 +17,13 @@ public:
 	XMFLOAT4X4 GetViewMatrix();
 	XMFLOAT4X4 GetProjectionMatrix();
 
+	void UpdateViewMatrix();
+	void UpdateProjectionMatrix(float aspectRatio);
+
+	float* GetFOVPointer();
+
+	Transform GetTransform();
+
 private:
 
 	Transform transform;
@@ -24,14 +31,12 @@ private:
 	XMFLOAT4X4 viewMatrix;
 	XMFLOAT4X4 projectionMatrix;
 
-	float fov = 70;
+	float fov = XM_PIDIV2;
 	float nearClip;
 	float farClip;
 	float moveSpeed;
 	float mouseSensitivity;
 	bool perspective = true;
 
-	void UpdateProjectionMatrix(float aspectRatio);
-	void UpdateViewMatrix();
 };
 

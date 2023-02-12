@@ -72,6 +72,44 @@ void Game::Init()
 	LoadShaders();
 	CreateGeometry();
 
+
+
+	cameras = {
+
+		std::make_shared<Camera>(
+		XMFLOAT3(0.0f, 0.0f, -3.0f),
+		XMFLOAT3(0.0f, 0.0f, 0.0f),
+		(float)this->windowWidth / this->windowHeight,
+		XM_PIDIV2,
+		.01,
+		1000,
+		5,
+		.01f,
+		true),
+
+		std::make_shared<Camera>(
+		XMFLOAT3(0.0f, -1.0f, -1.0f),
+		XMFLOAT3(-.7f, 0.0f, 0.0f),
+		(float)this->windowWidth / this->windowHeight,
+		XM_PIDIV2,
+		.01,
+		1000,
+		5,
+		.01f,
+		true),
+
+		std::make_shared<Camera>(
+		XMFLOAT3(0.0f, 1.0f, -1.0f),
+		XMFLOAT3(.7f, 0.0f, 0.0f),
+		(float)this->windowWidth / this->windowHeight,
+		XM_PIDIV2,
+		.01,
+		1000,
+		5,
+		.01f,
+		true)
+	};
+
 	// Set initial graphics API state
 	//  - These settings persist until we change them
 	//  - Some of these, like the primitive topology & input layout, probably won't change
@@ -311,9 +349,16 @@ void Game::OnResize()
 {
 	// Handle base-level DX resize stuff
 	DXCore::OnResize();
+
+	////loop through our vector of mesh pointers and draw each one!
+	for (std::shared_ptr<Camera> cam : cameras)
+	{
+		cam->UpdateProjectionMatrix((float)this->windowWidth / this->windowHeight);
+	}
 }
 
 bool showDemoWindow;
+int activeCameraIndex = 0;
 
 DirectX::XMFLOAT4 colorTint = XMFLOAT4(1.0f, 0.5f, 0.5f, 1.0f);
 
@@ -345,6 +390,18 @@ void Game::UpdateImGui(float deltaTime, float totalTime)
 	{
 		showDemoWindow = !showDemoWindow;
 	}
+
+	ImGui::RadioButton("Camera 0", &activeCameraIndex, 0);
+	ImGui::RadioButton("Camera 1", &activeCameraIndex, 1);
+	ImGui::RadioButton("Camera 2", &activeCameraIndex, 2);
+
+	if (ImGui::DragFloat3("Position", cameras[activeCameraIndex]->GetTransform().GetPositionPointer())) {
+		cameras[activeCameraIndex]->UpdateViewMatrix();
+	}
+	if (ImGui::SliderFloat("FOV", cameras[activeCameraIndex]->GetFOVPointer(), XM_PIDIV4, XM_PIDIV2)) {
+		cameras[activeCameraIndex]->UpdateProjectionMatrix((float)this->windowWidth / this->windowHeight);
+	}
+
 
 	ImGui::NewLine();
 	ImGui::ColorEdit4("Color Tint", &colorTint.x);
@@ -378,6 +435,8 @@ void Game::UpdateImGui(float deltaTime, float totalTime)
 void Game::Update(float deltaTime, float totalTime)
 {
 	UpdateImGui(deltaTime, totalTime);
+
+	cameras[activeCameraIndex]->Update(deltaTime);
 
 	positions[0].x = DirectX::XMScalarSin(totalTime);
 	positions[1].x = DirectX::XMScalarSin(totalTime);
@@ -414,6 +473,8 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	VertexShaderExternalData vsData;
 	vsData.colorTint = colorTint;
+	vsData.viewMatrix = cameras[activeCameraIndex]->GetViewMatrix();
+	vsData.projectionMatrix = cameras[activeCameraIndex]->GetProjectionMatrix();
 
 	////loop through our vector of mesh pointers and draw each one!
 	for (std::shared_ptr<Entity> entity : entities)

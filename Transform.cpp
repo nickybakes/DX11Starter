@@ -51,6 +51,11 @@ XMFLOAT3 Transform::GetPosition()
 	return position;
 }
 
+float* Transform::GetPositionPointer()
+{
+	return &position.x;
+}
+
 XMFLOAT3 Transform::GetPitchYawRoll()
 {
 	return rotation;

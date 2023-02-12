@@ -16,6 +16,7 @@ public:
 	void SetScale(DirectX::XMFLOAT3 scale);
 
 	DirectX::XMFLOAT3 GetPosition();
+	float* GetPositionPointer();
 	DirectX::XMFLOAT3 GetPitchYawRoll();
 	DirectX::XMFLOAT3 GetRight();
 	DirectX::XMFLOAT3 GetUp();
