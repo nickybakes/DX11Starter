@@ -2,23 +2,29 @@
 #include <memory>
 #include "Mesh.h"
 #include "Transform.h"
-#include "BufferStructs.h"
+#include "Camera.h"
+#include "Material.h"
+using namespace std;
 
 
 class Entity
 {
 
 public:
-	Entity(std::shared_ptr<Mesh> _mesh);
+	Entity(shared_ptr<Mesh> _mesh);
 	~Entity();
 
-	std::shared_ptr<Mesh> GetMesh();
-	std::shared_ptr<Transform> GetTransform();
+	shared_ptr<Mesh> GetMesh();
+	shared_ptr<Transform> GetTransform();
+	shared_ptr<Material> GetMaterial();
+	void SetMaterial(shared_ptr<Material> _material);
 
-	void Draw(Microsoft::WRL::ComPtr<ID3D11DeviceContext> context, Microsoft::WRL::ComPtr<ID3D11Buffer> vsConstantBuffer, VertexShaderExternalData vsData);
+	void Draw(Microsoft::WRL::ComPtr<ID3D11DeviceContext> context, shared_ptr<Camera> camera);
 private:
 
-	std::shared_ptr<Mesh> mesh;
-	std::shared_ptr<Transform> transform;
+	shared_ptr<Mesh> mesh;
+	shared_ptr<Transform> transform;
+
+	shared_ptr<Material> material;
 };
 

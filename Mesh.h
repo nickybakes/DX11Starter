@@ -2,7 +2,14 @@
 
 #include "d3d11.h"
 #include <wrl/client.h>
+#include <string>
 #include "Vertex.h"
+#include <fstream>
+#include <memory>
+#include <vector>
+#include <DirectXMath.h>
+
+using namespace DirectX;
 
 
 class Mesh
@@ -10,6 +17,7 @@ class Mesh
 
 public:
 	Mesh(Vertex* vertices, int numberOfVertices, unsigned int* indices, int numberOfIndices, Microsoft::WRL::ComPtr<ID3D11Device> deviceObject, Microsoft::WRL::ComPtr<ID3D11DeviceContext> deviceContext);
+	Mesh(const std::wstring& nameOfFile, Microsoft::WRL::ComPtr<ID3D11Device> deviceObject, Microsoft::WRL::ComPtr<ID3D11DeviceContext> deviceContext);
 	~Mesh();
 
 	/// <summary>
@@ -36,6 +44,11 @@ public:
 	void Draw();
 
 private:
+
+	/// <summary>
+	/// Helper method for creating direct 3d buffers
+	/// </summary>
+	void CreateDirect3DBuffer(Vertex* vertices, int numberOfVertices, unsigned int* indices, int numberOfIndices, Microsoft::WRL::ComPtr<ID3D11Device> deviceObject, Microsoft::WRL::ComPtr<ID3D11DeviceContext> deviceContext);
 
 	//buffers
 	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;

@@ -8,6 +8,7 @@
 #include "Mesh.h"
 #include "Entity.h"
 #include "Camera.h"
+#include "SimpleShader.h"
 
 
 class Game 
@@ -37,6 +38,7 @@ private:
 	void UpdateImGui(float deltaTime, float totalTime);
 
 	std::vector<std::shared_ptr<Mesh>> meshes;
+	std::vector<std::shared_ptr<Material>> materials;
 	std::vector<std::shared_ptr<Entity>> entities;
 
 	std::vector<std::shared_ptr<Camera>> cameras;
@@ -47,11 +49,8 @@ private:
 	//  - More info here: https://github.com/Microsoft/DirectXTK/wiki/ComPtr
 	
 	// Shaders and shader-related constructs
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
-	Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
-	Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;
-
-	Microsoft::WRL::ComPtr<ID3D11Buffer> vsConstantBuffer;
+	std::shared_ptr<SimplePixelShader> pixelShader;
+	std::shared_ptr<SimpleVertexShader> vertexShader;
 
 };
 

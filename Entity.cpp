@@ -1,42 +1,53 @@
 #include "Entity.h"
-#include "Vertex.h"
-#include "BufferStructs.h"
 
 using namespace DirectX;
 
-Entity::Entity(std::shared_ptr<Mesh> _mesh)
+Entity::Entity(shared_ptr<Mesh> _mesh)
 {
 	mesh = _mesh;
-	transform = std::make_shared<Transform>();
+	transform = make_shared<Transform>();
 }
 
 Entity::~Entity()
 {
 }
 
-std::shared_ptr<Mesh> Entity::GetMesh()
+shared_ptr<Mesh> Entity::GetMesh()
 {
 	return mesh;
 }
 
-std::shared_ptr<Transform> Entity::GetTransform()
+shared_ptr<Transform> Entity::GetTransform()
 {
 	return transform;
 }
 
-void Entity::Draw(Microsoft::WRL::ComPtr<ID3D11DeviceContext> context, Microsoft::WRL::ComPtr<ID3D11Buffer> vsConstantBuffer, VertexShaderExternalData vsData) {
+shared_ptr<Material> Entity::GetMaterial()
+{
+	return material;
+}
 
-	vsData.worldMatrix = transform->GetWorldMatrix();
+void Entity::SetMaterial(shared_ptr<Material> _material)
+{
+	material = _material;
+}
 
-	D3D11_MAPPED_SUBRESOURCE mappedBuffer = {};
-	context->Map(vsConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedBuffer);
-	memcpy(mappedBuffer.pData, &vsData, sizeof(vsData));
-	context->Unmap(vsConstantBuffer.Get(), 0);
+void Entity::Draw(Microsoft::WRL::ComPtr<ID3D11DeviceContext> context, shared_ptr<Camera> camera) {
 
-	context->VSSetConstantBuffers(
-		0, // Which slot (register) to bind the buffer to?
-		1, // How many are we activating? Can do multiple at once
-		vsConstantBuffer.GetAddressOf()); // Array of buffers (or the address of one)
+	material->GetVertexShader()->SetShader();
+	material->GetPixelShader()->SetShader();
+
+	std::shared_ptr<SimpleVertexShader> vs = material->GetVertexShader();
+	vs->SetMatrix4x4("worldMatrix", transform->GetWorldMatrix()); // match variable
+	vs->SetMatrix4x4("viewMatrix", camera->GetViewMatrix()); // names in your
+	vs->SetMatrix4x4("projectionMatrix", camera->GetProjectionMatrix()); // shader’s cbuffer!
+
+	vs->CopyAllBufferData();
+
+	std::shared_ptr<SimplePixelShader> ps = material->GetPixelShader();
+	ps->SetFloat4("colorTint", material->GetColorTint()); // Strings here MUST
+
+	ps->CopyAllBufferData();
 
 	mesh->Draw();
 }
