@@ -71,9 +71,9 @@ void Game::Init()
 	LoadShaders();
 
 	//create materials
-	shared_ptr<Material> mat0 = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(1, 1, .3f, 1));
-	shared_ptr<Material> mat1 = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(1, .3f, 1, 1));
-	shared_ptr<Material> mat2 = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(.3f, 1, 1, 1));
+	shared_ptr<Material> mat0 = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(1, 1, .3f, 1), .2f);
+	shared_ptr<Material> mat1 = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(1, .3f, 1, 1), .5f);
+	shared_ptr<Material> mat2 = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(.3f, 1, 1, 1), .8f);
 
 	materials = { mat0, mat1, mat2 };
 
@@ -117,6 +117,9 @@ void Game::Init()
 		true)
 	};
 
+
+	ambientColor = XMFLOAT3(0.0, 0.1, 0.25);
+
 	// Set initial graphics API state
 	//  - These settings persist until we change them
 	//  - Some of these, like the primitive topology & input layout, probably won't change
@@ -154,7 +157,7 @@ void Game::LoadShaders()
 	vertexShader = std::make_shared<SimpleVertexShader>(device, context,
 		FixPath(L"VertexShader.cso").c_str());
 	pixelShader = std::make_shared<SimplePixelShader>(device, context,
-		FixPath(L"CustomPS.cso").c_str());
+		FixPath(L"PixelShader.cso").c_str());
 }
 
 
@@ -325,11 +328,13 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	//pass in our current total time for this frame
 	//this gets used in my custom "hologram" shader
-	pixelShader->SetFloat("totalTime", totalTime);
+	//pixelShader->SetFloat("totalTime", totalTime);
+	pixelShader->SetFloat3("cameraPosition", cameras[activeCameraIndex]->GetTransform().GetPosition());
 
 	////loop through our vector of mesh pointers and draw each one!
 	for (std::shared_ptr<Entity> entity : entities)
 	{
+		entity->GetMaterial()->GetPixelShader()->SetFloat3("ambientColor", ambientColor);
 		entity->Draw(context, cameras[activeCameraIndex]);
 	}
 

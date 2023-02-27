@@ -1,14 +1,4 @@
-
-struct VertexToPixel
-{
-	// Data type
-	//  |
-	//  |   Name          Semantic
-	//  |    |                |
-	//  v    v                v
-	float4 screenPosition	: SV_POSITION;
-	float2 uv				: TEXCOORD;        // UV Coordinate
-};
+#include "ShaderIncludes.hlsli"
 
 cbuffer ExternalData : register(b0)
 {

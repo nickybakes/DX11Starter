@@ -52,5 +52,7 @@ private:
 	std::shared_ptr<SimplePixelShader> pixelShader;
 	std::shared_ptr<SimpleVertexShader> vertexShader;
 
+	XMFLOAT3 ambientColor;
+
 };
 

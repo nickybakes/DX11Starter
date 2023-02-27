@@ -1,44 +1,12 @@
-
-// Struct representing a single vertex worth of data
-// - This should match the vertex definition in our C++ code
-// - By "match", I mean the size, order and number of members
-// - The name of the struct itself is unimportant, but should be descriptive
-// - Each variable must have a semantic, which defines its usage
-struct VertexShaderInput
-{ 
-	// Data type
-	//  |
-	//  |   Name          Semantic
-	//  |    |                |
-	//  v    v                v
-	float3 localPosition	: POSITION;     // XYZ position
-	float3 normal			: NORMAL;        // DIRECTION
-	float2 uv			    : TEXCOORD;        // UV COORDINATE
-};
-
-// Struct representing the data we're sending down the pipeline
-// - Should match our pixel shader's input (hence the name: Vertex to Pixel)
-// - At a minimum, we need a piece of data defined tagged as SV_POSITION
-// - The name of the struct itself is unimportant, but should be descriptive
-// - Each variable must have a semantic, which defines its usage
-struct VertexToPixel
-{
-	// Data type
-	//  |
-	//  |   Name          Semantic
-	//  |    |                |
-	//  v    v                v
-	float4 screenPosition	: SV_POSITION;	// XYZW position (System Value Position)
-	float2 uv			: TEXCOORD;        // UV Coordinate
-};
+#include "ShaderIncludes.hlsli"
 
 cbuffer ExternalData : register(b0)
 {
 	matrix worldMatrix;
 	matrix viewMatrix;
 	matrix projectionMatrix;
+    matrix worldInvTranspose;
 }
-
 
 // --------------------------------------------------------
 // The entry point (main method) for our vertex shader
@@ -63,6 +31,10 @@ VertexToPixel main( VertexShaderInput input )
 	// Multiply the three matrices together first
 	matrix wvp = mul(projectionMatrix, mul(viewMatrix, worldMatrix));
 	output.screenPosition = mul(wvp, float4(input.localPosition, 1.0f));
+	
+    output.normal = mul((float3x3) worldInvTranspose, input.normal);
+	
+    output.worldPosition = mul(worldMatrix, float4(input.localPosition, 1)).xyz;
 
 	output.uv = input.uv;
 

@@ -49,11 +49,11 @@ void Camera::Update(float dt)
 		transform.MoveRelative(-currentSpeed * dt, 0, 0);
 	}
 
-	if (input.KeyDown('Q'))
+	if (input.KeyDown('E'))
 	{
 		transform.MoveRelative(0, currentSpeed * dt, 0);
 	}
-	if (input.KeyDown('E'))
+	if (input.KeyDown('Q'))
 	{
 		transform.MoveRelative(0, -currentSpeed * dt, 0);
 	}

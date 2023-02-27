@@ -41,11 +41,13 @@ void Entity::Draw(Microsoft::WRL::ComPtr<ID3D11DeviceContext> context, shared_pt
 	vs->SetMatrix4x4("worldMatrix", transform->GetWorldMatrix()); // match variable
 	vs->SetMatrix4x4("viewMatrix", camera->GetViewMatrix()); // names in your
 	vs->SetMatrix4x4("projectionMatrix", camera->GetProjectionMatrix()); // shader’s cbuffer!
+	vs->SetMatrix4x4("worldInvTranspose", transform->GetWorldInverseTransposeMatrix());
 
 	vs->CopyAllBufferData();
 
 	std::shared_ptr<SimplePixelShader> ps = material->GetPixelShader();
 	ps->SetFloat4("colorTint", material->GetColorTint()); // Strings here MUST
+	ps->SetFloat("roughness", material->GetRoughness()); // Strings here MUST
 
 	ps->CopyAllBufferData();
 
