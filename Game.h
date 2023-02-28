@@ -9,6 +9,7 @@
 #include "Entity.h"
 #include "Camera.h"
 #include "SimpleShader.h"
+#include "Lights.h"
 
 
 class Game 
@@ -53,6 +54,7 @@ private:
 	std::shared_ptr<SimpleVertexShader> vertexShader;
 
 	XMFLOAT3 ambientColor;
+	Light directionalLight1;
 
 };
 

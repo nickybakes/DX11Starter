@@ -84,7 +84,7 @@ void Game::Init()
 	cameras = {
 
 		std::make_shared<Camera>(
-		XMFLOAT3(0.0f, 0.0f, -3.0f),
+		XMFLOAT3(0.0f, 0.0f, -6.0f),
 		XMFLOAT3(0.0f, 0.0f, 0.0f),
 		(float)this->windowWidth / this->windowHeight,
 		XM_PIDIV2,
@@ -118,7 +118,14 @@ void Game::Init()
 	};
 
 
-	ambientColor = XMFLOAT3(0.0, 0.1, 0.25);
+	ambientColor = XMFLOAT3(0.0f, 0.1f, 0.25f);
+
+	directionalLight1 = {};
+
+	directionalLight1.Type = LIGHT_TYPE_DIRECTIONAL;
+	directionalLight1.Direction = XMFLOAT3(1.0f, -1.0f, 0.0f);
+	directionalLight1.Color = XMFLOAT3(0.2f, 0.2f, 1.0f);
+	directionalLight1.Intensity = 1.0f;
 
 	// Set initial graphics API state
 	//  - These settings persist until we change them
@@ -188,6 +195,12 @@ void Game::CreateGeometry()
 	entities[2]->SetMaterial(materials[2]);
 	entities[3]->SetMaterial(materials[1]);
 	entities[4]->SetMaterial(materials[2]);
+
+	entities[0]->GetTransform()->SetPosition(XMFLOAT3(-6, 0, 0));
+	entities[1]->GetTransform()->SetPosition(XMFLOAT3(-3, 0, 0));
+	entities[2]->GetTransform()->SetPosition(XMFLOAT3(0, 0, 0));
+	entities[3]->GetTransform()->SetPosition(XMFLOAT3(3, 0, 0));
+	entities[4]->GetTransform()->SetPosition(XMFLOAT3(6, 0, 0));
 
 	for (int i = 0; i < entities.size(); i++) {
 		positions.push_back(entities[i]->GetTransform()->GetPosition());
@@ -293,11 +306,22 @@ void Game::Update(float deltaTime, float totalTime)
 
 	cameras[activeCameraIndex]->Update(deltaTime);
 
-	positions[0].x = 2 + DirectX::XMScalarSin(totalTime);
-	positions[1].x = DirectX::XMScalarSin(totalTime) - 2;
-	rotations[2].z = totalTime;
-	positions[3].y = 2 + DirectX::XMScalarSin(totalTime);
-	positions[4].y = DirectX::XMScalarSin(totalTime) - 2;
+	//positions[0].x = -4 + DirectX::XMScalarSin(totalTime);
+	//positions[1].x = DirectX::XMScalarSin(totalTime) - 2;
+	//rotations[2].y = totalTime;
+	//positions[3].y = 2 + DirectX::XMScalarSin(totalTime);
+	//positions[4].y = DirectX::XMScalarSin(totalTime) - 2;
+	rotations[0].x = totalTime;
+	rotations[1].x = totalTime;
+	rotations[2].x = totalTime;
+	rotations[3].x = totalTime;
+	rotations[4].x = totalTime;
+	rotations[0].y = totalTime;
+	rotations[1].y = totalTime;
+	rotations[2].y = totalTime;
+	rotations[3].y = totalTime;
+	rotations[4].y = totalTime;
+
 
 	for (int i = 0; i < entities.size(); i++) {
 		entities[i]->GetTransform()->SetPosition(positions[i]);
@@ -330,6 +354,11 @@ void Game::Draw(float deltaTime, float totalTime)
 	//this gets used in my custom "hologram" shader
 	//pixelShader->SetFloat("totalTime", totalTime);
 	pixelShader->SetFloat3("cameraPosition", cameras[activeCameraIndex]->GetTransform().GetPosition());
+
+	pixelShader->SetData(
+		"directionalLight1", // The name of the (eventual) variable in the shader
+		&directionalLight1, // The address of the data to set
+		sizeof(Light)); // The size of the data (the whole struct!) to set
 
 	////loop through our vector of mesh pointers and draw each one!
 	for (std::shared_ptr<Entity> entity : entities)
