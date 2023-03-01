@@ -32,6 +32,10 @@ Game::Game(HINSTANCE hInstance)
 		false,				// Sync the framerate to the monitor refresh? (lock framerate)
 		true)				// Show extra stats (fps) in title bar?
 {
+	ambientColor = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	directionalLight1 = {};
+	directionalLight2 = {};
+	directionalLight3 = {};
 #if defined(DEBUG) || defined(_DEBUG)
 	// Do we want a console window?  Probably only in debug mode
 	CreateConsoleWindow(500, 120, 32, 120);
@@ -71,9 +75,9 @@ void Game::Init()
 	LoadShaders();
 
 	//create materials
-	shared_ptr<Material> mat0 = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(1, 1, .3f, 1), .2f);
-	shared_ptr<Material> mat1 = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(1, .3f, 1, 1), .5f);
-	shared_ptr<Material> mat2 = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(.3f, 1, 1, 1), .8f);
+	shared_ptr<Material> mat0 = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(1, 1, 1, 1), .2f);
+	shared_ptr<Material> mat1 = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(1, 1, 1, 1), .5f);
+	shared_ptr<Material> mat2 = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(1, 1, 1, 1), .8f);
 
 	materials = { mat0, mat1, mat2 };
 
@@ -123,9 +127,23 @@ void Game::Init()
 	directionalLight1 = {};
 
 	directionalLight1.Type = LIGHT_TYPE_DIRECTIONAL;
-	directionalLight1.Direction = XMFLOAT3(1.0f, -1.0f, 0.0f);
-	directionalLight1.Color = XMFLOAT3(0.2f, 0.2f, 1.0f);
+	directionalLight1.Direction = XMFLOAT3(1.0f, 0.0f, 0.0f);
+	directionalLight1.Color = XMFLOAT3(1.0f, 0.0f, 0.0f);
 	directionalLight1.Intensity = 1.0f;
+
+	directionalLight2 = {};
+
+	directionalLight2.Type = LIGHT_TYPE_DIRECTIONAL;
+	directionalLight2.Direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
+	directionalLight2.Color = XMFLOAT3(0.0f, 1.0f, 0.0f);
+	directionalLight2.Intensity = 1.0f;
+
+	directionalLight3 = {};
+
+	directionalLight3.Type = LIGHT_TYPE_DIRECTIONAL;
+	directionalLight3.Direction = XMFLOAT3(-1.0f, 0.0f, 0.0f);
+	directionalLight3.Color = XMFLOAT3(0.0f, 0.0f, 1.0f);
+	directionalLight3.Intensity = 1.0f;
 
 	// Set initial graphics API state
 	//  - These settings persist until we change them
@@ -359,6 +377,9 @@ void Game::Draw(float deltaTime, float totalTime)
 		"directionalLight1", // The name of the (eventual) variable in the shader
 		&directionalLight1, // The address of the data to set
 		sizeof(Light)); // The size of the data (the whole struct!) to set
+
+	pixelShader->SetData("directionalLight2", &directionalLight2, sizeof(Light));
+	pixelShader->SetData("directionalLight3",  &directionalLight3, sizeof(Light));
 
 	////loop through our vector of mesh pointers and draw each one!
 	for (std::shared_ptr<Entity> entity : entities)

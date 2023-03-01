@@ -55,6 +55,8 @@ private:
 
 	XMFLOAT3 ambientColor;
 	Light directionalLight1;
+	Light directionalLight2;
+	Light directionalLight3;
 
 };
 
