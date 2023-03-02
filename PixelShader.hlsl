@@ -11,16 +11,19 @@ cbuffer ExternalData : register(b0)
 
 }
 
+//Gets the normalized direction TOWARD a light's direction
 float3 DirectionToLight(Light light)
 {
     return normalize(-light.Direction.xyz);
 }
 
+//Calculates the diffuse value for this pixel
 float3 Diffuse(float3 normal, float3 dirToLight)
 {
     return saturate(dot(normal, dirToLight));
 }
 
+//Calculates the specular reflection value for this pixel
 float1 Specular(Light light, float3 V, float3 normal)
 {
     float specExponent = (1.0f - roughness) * MAX_SPECULAR_EXPONENT;
@@ -35,6 +38,7 @@ float1 Specular(Light light, float3 V, float3 normal)
     return pow(saturate(dot(R, V)), specExponent);
 }
 
+//Calculates all lighting data for a directional light for this pixel
 float3 HandleDirectionalLight(Light light, float3 V, float3 normal)
 {
     float3 diffuse = (Diffuse(normal, DirectionToLight(light)) * light.Color * colorTint.rgb);
@@ -42,6 +46,7 @@ float3 HandleDirectionalLight(Light light, float3 V, float3 normal)
     return colorTint.rgb * (diffuse + Specular(light, V, normal));
 }
 
+//Calculates the attenuation value for a point light
 float Attenuate(Light light, float3 worldPos)
 {
     float dist = distance(light.Position, worldPos);
@@ -49,6 +54,7 @@ float Attenuate(Light light, float3 worldPos)
     return att * att;
 }
 
+//Calculates all lighting data for a point light for this pixel
 float3 HandlePointLight(Light light, float3 worldPosition, float3 V, float3 normal)
 {
     float3 direction = normalize(light.Position - worldPosition);
@@ -81,6 +87,7 @@ float4 main(VertexToPixel input) : SV_TARGET
     
     float3 finalLighting = float3(0.0f, 0.0f, 0.0f);
     
+    //loop through our light array and calculate all lighting for this pixel
     for (int i = 0; i < 5; i++)
     {
         switch (lights[i].Type)
@@ -96,6 +103,7 @@ float4 main(VertexToPixel input) : SV_TARGET
         }
     }
 
+    //finally combine it with our ambient color
     finalLighting += (ambientColor * colorTint.rgb);
     
 	
