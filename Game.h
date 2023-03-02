@@ -54,9 +54,9 @@ private:
 	std::shared_ptr<SimpleVertexShader> vertexShader;
 
 	XMFLOAT3 ambientColor;
-	Light directionalLight1;
-	Light directionalLight2;
-	Light directionalLight3;
+
+	std::vector<Light> lights;
+
 
 };
 

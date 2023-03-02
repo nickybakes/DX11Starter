@@ -33,9 +33,6 @@ Game::Game(HINSTANCE hInstance)
 		true)				// Show extra stats (fps) in title bar?
 {
 	ambientColor = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	directionalLight1 = {};
-	directionalLight2 = {};
-	directionalLight3 = {};
 #if defined(DEBUG) || defined(_DEBUG)
 	// Do we want a console window?  Probably only in debug mode
 	CreateConsoleWindow(500, 120, 32, 120);
@@ -99,7 +96,7 @@ void Game::Init()
 		true),
 
 		std::make_shared<Camera>(
-		XMFLOAT3(0.0f, -1.0f, -1.0f),
+		XMFLOAT3(0.0f, -3.0f, -3.0f),
 		XMFLOAT3(-.7f, 0.0f, 0.0f),
 		(float)this->windowWidth / this->windowHeight,
 		XM_PIDIV2,
@@ -110,7 +107,7 @@ void Game::Init()
 		true),
 
 		std::make_shared<Camera>(
-		XMFLOAT3(0.0f, 1.0f, -1.0f),
+		XMFLOAT3(0.0f, 3.0f, -3.0f),
 		XMFLOAT3(.7f, 0.0f, 0.0f),
 		(float)this->windowWidth / this->windowHeight,
 		XM_PIDIV2,
@@ -124,26 +121,44 @@ void Game::Init()
 
 	ambientColor = XMFLOAT3(0.0f, 0.1f, 0.25f);
 
-	directionalLight1 = {};
+	Light directionalLight1 = {};
 
 	directionalLight1.Type = LIGHT_TYPE_DIRECTIONAL;
 	directionalLight1.Direction = XMFLOAT3(1.0f, 0.0f, 0.0f);
 	directionalLight1.Color = XMFLOAT3(1.0f, 0.0f, 0.0f);
 	directionalLight1.Intensity = 1.0f;
 
-	directionalLight2 = {};
+	Light directionalLight2 = {};
 
 	directionalLight2.Type = LIGHT_TYPE_DIRECTIONAL;
 	directionalLight2.Direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
 	directionalLight2.Color = XMFLOAT3(0.0f, 1.0f, 0.0f);
 	directionalLight2.Intensity = 1.0f;
 
-	directionalLight3 = {};
+	Light directionalLight3 = {};
 
 	directionalLight3.Type = LIGHT_TYPE_DIRECTIONAL;
 	directionalLight3.Direction = XMFLOAT3(-1.0f, 0.0f, 0.0f);
 	directionalLight3.Color = XMFLOAT3(0.0f, 0.0f, 1.0f);
 	directionalLight3.Intensity = 1.0f;
+
+	Light pointLight1 = {};
+
+	pointLight1.Type = LIGHT_TYPE_POINT;
+	pointLight1.Position = XMFLOAT3(-1.5f, 0.0f, -2.0f);
+	pointLight1.Color = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	pointLight1.Intensity = 1.0f;
+	pointLight1.Range = 5.0f;
+
+	Light pointLight2 = {};
+
+	pointLight2.Type = LIGHT_TYPE_POINT;
+	pointLight2.Position = XMFLOAT3(4.5f, 0.0f, -2.0f);
+	pointLight2.Color = XMFLOAT3(1.0f, 1.0f, 0.5f);
+	pointLight2.Intensity = 1.0f;
+	pointLight2.Range = 5.0f;
+
+	lights = { directionalLight1, directionalLight2, directionalLight3, pointLight1, pointLight2 };
 
 	// Set initial graphics API state
 	//  - These settings persist until we change them
@@ -278,6 +293,13 @@ void Game::UpdateImGui(float deltaTime, float totalTime)
 		showDemoWindow = !showDemoWindow;
 	}
 
+	ImGui::ColorEdit3("Ambient Color", &ambientColor.x);
+	ImGui::ColorEdit3("Directional Light 1 Color", &lights[0].Color.x);
+	ImGui::ColorEdit3("Directional Light 2 Color", &lights[1].Color.x);
+	ImGui::ColorEdit3("Directional Light 3 Color", &lights[2].Color.x);
+	ImGui::DragFloat3("Point Light 1 Position", &lights[3].Position.x, .1f);
+	ImGui::DragFloat3("Point Light 2 Position", &lights[4].Position.x, .1f);
+
 	ImGui::RadioButton("Camera 0", &activeCameraIndex, 0);
 	ImGui::RadioButton("Camera 1", &activeCameraIndex, 1);
 	ImGui::RadioButton("Camera 2", &activeCameraIndex, 2);
@@ -373,13 +395,7 @@ void Game::Draw(float deltaTime, float totalTime)
 	//pixelShader->SetFloat("totalTime", totalTime);
 	pixelShader->SetFloat3("cameraPosition", cameras[activeCameraIndex]->GetTransform().GetPosition());
 
-	pixelShader->SetData(
-		"directionalLight1", // The name of the (eventual) variable in the shader
-		&directionalLight1, // The address of the data to set
-		sizeof(Light)); // The size of the data (the whole struct!) to set
-
-	pixelShader->SetData("directionalLight2", &directionalLight2, sizeof(Light));
-	pixelShader->SetData("directionalLight3",  &directionalLight3, sizeof(Light));
+	pixelShader->SetData("lights", &lights[0], sizeof(Light) * (int)lights.size());
 
 	////loop through our vector of mesh pointers and draw each one!
 	for (std::shared_ptr<Entity> entity : entities)

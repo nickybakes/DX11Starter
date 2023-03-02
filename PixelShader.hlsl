@@ -6,11 +6,8 @@ cbuffer ExternalData : register(b0)
     float roughness;
     float3 cameraPosition;
     float3 ambientColor;
-    Light directionalLight1;
-    Light directionalLight2;
-    Light directionalLight3;
-    Light pointLight1;
-    Light pointLight2;
+    
+    Light lights[5];
 
 }
 
@@ -24,42 +21,41 @@ float3 Diffuse(float3 normal, float3 dirToLight)
     return saturate(dot(normal, dirToLight));
 }
 
-float3 HandleDirectionalLight(Light light, float3 V, float3 normal)
+float1 Specular(Light light, float3 V, float3 normal)
 {
-    float3 diffuse = (Diffuse(normal, DirectionToLight(light)) * light.Color * colorTint.rgb);
-    
     float specExponent = (1.0f - roughness) * MAX_SPECULAR_EXPONENT;
     
     if (specExponent < .05f)
     {
-        return diffuse;
+        return 0.0f;
     }
     
     float3 R = reflect(light.Direction, normal);
     
-    float specular = pow(saturate(dot(R, V)), specExponent);
-    
-    return colorTint.rgb * (diffuse + specular);
+    return pow(saturate(dot(R, V)), specExponent);
 }
 
-float3 HandlePointLight(Light light, float3 worldPosition)
+float3 HandleDirectionalLight(Light light, float3 V, float3 normal)
+{
+    float3 diffuse = (Diffuse(normal, DirectionToLight(light)) * light.Color * colorTint.rgb);
+    
+    return colorTint.rgb * (diffuse + Specular(light, V, normal));
+}
+
+float Attenuate(Light light, float3 worldPos)
+{
+    float dist = distance(light.Position, worldPos);
+    float att = saturate(1.0f - (dist * dist / (light.Range * light.Range)));
+    return att * att;
+}
+
+float3 HandlePointLight(Light light, float3 worldPosition, float3 V, float3 normal)
 {
     float3 direction = normalize(light.Position - worldPosition);
     
-    //float3 diffuse = (Diffuse(normal, DirectionToLight(light)) * light.Color * colorTint.rgb);
+    float3 diffuse = (Diffuse(normal, direction) * light.Color * colorTint.rgb);
     
-    //float specExponent = (1.0f - roughness) * MAX_SPECULAR_EXPONENT;
-    
-    //if (specExponent < .05f)
-    //{
-    //    return diffuse;
-    //}
-    
-    //float3 R = reflect(light.Direction, normal);
-    
-    //float specular = pow(saturate(dot(R, V)), specExponent);
-    
-    //return colorTint.rgb * (diffuse + specular);
+    return colorTint.rgb * (diffuse + Specular(light, V, normal)) * Attenuate(light, worldPosition);
 }
 
 
@@ -83,11 +79,24 @@ float4 main(VertexToPixel input) : SV_TARGET
     
     float3 V = normalize(cameraPosition - input.worldPosition);
     
+    float3 finalLighting = float3(0.0f, 0.0f, 0.0f);
+    
+    for (int i = 0; i < 5; i++)
+    {
+        switch (lights[i].Type)
+        {
+            case (LIGHT_TYPE_DIRECTIONAL):
+                finalLighting += HandleDirectionalLight(lights[i], V, input.normal);
+                break;
+            
+            case (LIGHT_TYPE_POINT):
+                finalLighting += HandlePointLight(lights[i], input.worldPosition, V, input.normal);
+                break;
 
-    float3 finalLighting = HandleDirectionalLight(directionalLight1, V, input.normal) + 
-    HandleDirectionalLight(directionalLight2, V, input.normal) + 
-    HandleDirectionalLight(directionalLight3, V, input.normal) +
-    (ambientColor * colorTint.rgb);
+        }
+    }
+
+    finalLighting += (ambientColor * colorTint.rgb);
     
 	
     return float4(finalLighting, 1);

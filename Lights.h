@@ -6,6 +6,7 @@ using namespace DirectX;
 #define LIGHT_TYPE_POINT 1
 #define LIGHT_TYPE_SPOT 2
 
+
 struct Light {
 	int Type; // Which kind of light? 0, 1 or 2 (see above)
 	XMFLOAT3 Direction; // Directional and Spot lights need a direction
