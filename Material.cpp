@@ -8,6 +8,14 @@ Material::Material(std::shared_ptr<SimpleVertexShader> _vertexShader, std::share
 	roughness = _roughness;
 }
 
+void Material::PrepareMaterial()
+{
+	vertexShader->SetShader();
+	pixelShader->SetShader();
+	for (auto& t : textureSRVs) { pixelShader->SetShaderResourceView(t.first.c_str(), t.second); }
+	for (auto& s : samplers) { pixelShader->SetSamplerState(s.first.c_str(), s.second); }
+}
+
 std::shared_ptr<SimpleVertexShader> Material::GetVertexShader()
 {
 	return vertexShader;
@@ -36,6 +44,16 @@ void Material::SetVertexShader(std::shared_ptr<SimpleVertexShader> _vertexShader
 void Material::SetPixelShader(std::shared_ptr<SimplePixelShader> _pixelShader)
 {
 	pixelShader = _pixelShader;
+}
+
+void Material::AddTextureSRV(std::string key, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv)
+{
+	textureSRVs.insert({ key, srv });
+}
+
+void Material::AddSampler(std::string key, Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler)
+{
+	samplers.insert({ key, sampler });
 }
 
 void Material::SetColorTint(XMFLOAT4 _colorTint)

@@ -34,8 +34,7 @@ void Entity::SetMaterial(shared_ptr<Material> _material)
 
 void Entity::Draw(Microsoft::WRL::ComPtr<ID3D11DeviceContext> context, shared_ptr<Camera> camera) {
 
-	material->GetVertexShader()->SetShader();
-	material->GetPixelShader()->SetShader();
+	material->PrepareMaterial();
 
 	std::shared_ptr<SimpleVertexShader> vs = material->GetVertexShader();
 	vs->SetMatrix4x4("worldMatrix", transform->GetWorldMatrix()); // match variable
@@ -46,8 +45,8 @@ void Entity::Draw(Microsoft::WRL::ComPtr<ID3D11DeviceContext> context, shared_pt
 	vs->CopyAllBufferData();
 
 	std::shared_ptr<SimplePixelShader> ps = material->GetPixelShader();
-	ps->SetFloat4("colorTint", material->GetColorTint()); // Strings here MUST
-	ps->SetFloat("roughness", material->GetRoughness()); // Strings here MUST
+	ps->SetFloat4("colorTint", material->GetColorTint());
+	ps->SetFloat("roughness", material->GetRoughness());
 
 	ps->CopyAllBufferData();
 

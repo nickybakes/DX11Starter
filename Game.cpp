@@ -7,6 +7,7 @@
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_dx11.h"
 #include "ImGui/imgui_impl_win32.h"
+#include "WICTextureLoader.h"
 
 // Needed for a helper function to load pre-compiled shader files
 #pragma comment(lib, "d3dcompiler.lib")
@@ -71,10 +72,54 @@ void Game::Init()
 	//  - You'll be expanding and/or replacing these later
 	LoadShaders();
 
+	//create sampler state for textures
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler;
+	D3D11_SAMPLER_DESC samplerDescription = {};
+	samplerDescription.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDescription.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDescription.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDescription.Filter = D3D11_FILTER_ANISOTROPIC;
+	samplerDescription.MaxAnisotropy = 8;
+	samplerDescription.MaxLOD = D3D11_FLOAT32_MAX;
+	device->CreateSamplerState(&samplerDescription, sampler.GetAddressOf());
+
+	//load textures
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> brick_SRV_D;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> brick_SRV_R;
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tarp_SRV_D;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tarp_SRV_R;
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> window_SRV_D;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> window_SRV_R;
+
+
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/T_Brick_01_D.png").c_str(), 0, brick_SRV_D.GetAddressOf());
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/T_Brick_01_R.png").c_str(), 0, brick_SRV_R.GetAddressOf());
+
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/T_Tarp_01_D.png").c_str(), 0, tarp_SRV_D.GetAddressOf());
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/T_Hair_02.png").c_str(), 0, tarp_SRV_R.GetAddressOf());
+
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/T_Window_02_D.png").c_str(), 0, window_SRV_D.GetAddressOf());
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/T_Window_02_R.png").c_str(), 0, window_SRV_R.GetAddressOf());
+
+
 	//create materials
-	shared_ptr<Material> mat0 = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(1, 1, 1, 1), .2f);
-	shared_ptr<Material> mat1 = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(1, 1, 1, 1), .5f);
-	shared_ptr<Material> mat2 = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(1, 1, 1, 1), .8f);
+	shared_ptr<Material> mat0 = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(1, 1, 1, 1), .94f);
+	shared_ptr<Material> mat1 = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(1, 1, 1, 1), .85f);
+	shared_ptr<Material> mat2 = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(1, 1, 1, 1), .5f);
+
+	mat0->AddSampler("BasicSampler", sampler);
+	mat0->AddTextureSRV("T_Diffuse", brick_SRV_D);
+	mat0->AddTextureSRV("T_Roughness", brick_SRV_R);
+
+	mat1->AddSampler("BasicSampler", sampler);
+	mat1->AddTextureSRV("T_Diffuse", tarp_SRV_D);
+	mat1->AddTextureSRV("T_Roughness", tarp_SRV_R);
+
+	mat2->AddSampler("BasicSampler", sampler);
+	mat2->AddTextureSRV("T_Diffuse", window_SRV_D);
+	mat2->AddTextureSRV("T_Roughness", window_SRV_R);
 
 	materials = { mat0, mat1, mat2 };
 
@@ -125,21 +170,21 @@ void Game::Init()
 
 	directionalLight1.Type = LIGHT_TYPE_DIRECTIONAL;
 	directionalLight1.Direction = XMFLOAT3(1.0f, 0.0f, 0.0f);
-	directionalLight1.Color = XMFLOAT3(1.0f, 0.0f, 0.0f);
+	directionalLight1.Color = XMFLOAT3(1.0f, 1.0f, 1.0f);
 	directionalLight1.Intensity = 1.0f;
 
 	Light directionalLight2 = {};
 
 	directionalLight2.Type = LIGHT_TYPE_DIRECTIONAL;
 	directionalLight2.Direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
-	directionalLight2.Color = XMFLOAT3(0.0f, 1.0f, 0.0f);
+	directionalLight2.Color = XMFLOAT3(1.0f, 1.0f, 1.0f);
 	directionalLight2.Intensity = 1.0f;
 
 	Light directionalLight3 = {};
 
 	directionalLight3.Type = LIGHT_TYPE_DIRECTIONAL;
 	directionalLight3.Direction = XMFLOAT3(-1.0f, 0.0f, 0.0f);
-	directionalLight3.Color = XMFLOAT3(0.0f, 0.0f, 1.0f);
+	directionalLight3.Color = XMFLOAT3(1.0f, 1.0f, 1.0f);
 	directionalLight3.Intensity = 1.0f;
 
 	Light pointLight1 = {};
@@ -346,21 +391,16 @@ void Game::Update(float deltaTime, float totalTime)
 
 	cameras[activeCameraIndex]->Update(deltaTime);
 
-	//positions[0].x = -4 + DirectX::XMScalarSin(totalTime);
-	//positions[1].x = DirectX::XMScalarSin(totalTime) - 2;
+	//rotations[0].x = totalTime;
+	//rotations[1].x = totalTime;
+	//rotations[2].x = totalTime;
+	//rotations[3].x = totalTime;
+	//rotations[4].x = totalTime;
+	//rotations[0].y = totalTime;
+	//rotations[1].y = totalTime;
 	//rotations[2].y = totalTime;
-	//positions[3].y = 2 + DirectX::XMScalarSin(totalTime);
-	//positions[4].y = DirectX::XMScalarSin(totalTime) - 2;
-	rotations[0].x = totalTime;
-	rotations[1].x = totalTime;
-	rotations[2].x = totalTime;
-	rotations[3].x = totalTime;
-	rotations[4].x = totalTime;
-	rotations[0].y = totalTime;
-	rotations[1].y = totalTime;
-	rotations[2].y = totalTime;
-	rotations[3].y = totalTime;
-	rotations[4].y = totalTime;
+	//rotations[3].y = totalTime;
+	//rotations[4].y = totalTime;
 
 
 	for (int i = 0; i < entities.size(); i++) {

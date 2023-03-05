@@ -1,5 +1,9 @@
 #include "ShaderIncludes.hlsli"
 
+Texture2D T_Diffuse : register(t0); // "t" registers for textures
+Texture2D T_Roughness : register(t1); // "t" registers for textures
+SamplerState BasicSampler : register(s0); // "s" registers for samplers
+
 cbuffer ExternalData : register(b0)
 {
     float4 colorTint;
@@ -24,26 +28,25 @@ float3 Diffuse(float3 normal, float3 dirToLight)
 }
 
 //Calculates the specular reflection value for this pixel
-float1 Specular(Light light, float3 V, float3 normal)
+float1 Specular(float3 dirToCamera, float3 normal, float3 directionToLight, float roughness, float specularScale)
 {
+    if (roughness == 1)
+        return 0;
+    
     float specExponent = (1.0f - roughness) * MAX_SPECULAR_EXPONENT;
     
-    if (specExponent < .05f)
-    {
-        return 0.0f;
-    }
+    float3 R = reflect(-directionToLight, normal);
     
-    float3 R = reflect(light.Direction, normal);
-    
-    return pow(saturate(dot(R, V)), specExponent);
+    return pow(saturate(dot(R, dirToCamera)), specExponent) * specularScale;
 }
 
 //Calculates all lighting data for a directional light for this pixel
-float3 HandleDirectionalLight(Light light, float3 V, float3 normal)
+float3 HandleDirectionalLight(Light light, float3 dirToCamera, float3 normal, float3 surfaceColor, float roughness, float specularScale)
 {
-    float3 diffuse = (Diffuse(normal, DirectionToLight(light)) * light.Color * colorTint.rgb);
-    
-    return colorTint.rgb * (diffuse + Specular(light, V, normal));
+    float3 dirToLight = normalize(-light.Direction.xyz);
+    float3 diffuse = Diffuse(normal, dirToLight);
+
+    return light.Intensity * light.Color * (diffuse * surfaceColor.rgb + Specular(dirToCamera, normal, dirToLight, roughness, specularScale));
 }
 
 //Calculates the attenuation value for a point light
@@ -55,13 +58,13 @@ float Attenuate(Light light, float3 worldPos)
 }
 
 //Calculates all lighting data for a point light for this pixel
-float3 HandlePointLight(Light light, float3 worldPosition, float3 V, float3 normal)
+float3 HandlePointLight(Light light, float3 worldPosition, float3 dirToCamera, float3 normal, float3 surfaceColor, float roughness, float specularScale)
 {
-    float3 direction = normalize(light.Position - worldPosition);
+    float3 dirToLight = normalize(light.Position - worldPosition);
     
-    float3 diffuse = (Diffuse(normal, direction) * light.Color * colorTint.rgb);
+    float3 diffuse = Diffuse(normal, dirToLight);
     
-    return colorTint.rgb * (diffuse + Specular(light, V, normal)) * Attenuate(light, worldPosition);
+    return light.Intensity * light.Color * (diffuse * surfaceColor.rgb + Specular(dirToCamera, normal, dirToLight, roughness, specularScale)) * Attenuate(light, worldPosition);
 }
 
 
@@ -83,9 +86,13 @@ float4 main(VertexToPixel input) : SV_TARGET
 	
     input.normal = normalize(input.normal);
     
-    float3 V = normalize(cameraPosition - input.worldPosition);
+    float3 dirToCamera = normalize(cameraPosition - input.worldPosition);
     
-    float3 finalLighting = float3(0.0f, 0.0f, 0.0f);
+    float3 surfaceColor = T_Diffuse.Sample(BasicSampler, input.uv).rgb * colorTint.rgb;
+    
+    float specularScale = 1 - T_Roughness.Sample(BasicSampler, input.uv).r;
+    
+    float3 finalLighting = (ambientColor * surfaceColor);
     
     //loop through our light array and calculate all lighting for this pixel
     for (int i = 0; i < 5; i++)
@@ -93,19 +100,15 @@ float4 main(VertexToPixel input) : SV_TARGET
         switch (lights[i].Type)
         {
             case (LIGHT_TYPE_DIRECTIONAL):
-                finalLighting += HandleDirectionalLight(lights[i], V, input.normal);
+                finalLighting += HandleDirectionalLight(lights[i], dirToCamera, input.normal, surfaceColor, roughness, specularScale);
                 break;
             
             case (LIGHT_TYPE_POINT):
-                finalLighting += HandlePointLight(lights[i], input.worldPosition, V, input.normal);
+                finalLighting += HandlePointLight(lights[i], input.worldPosition, dirToCamera, input.normal, surfaceColor, roughness, specularScale);
                 break;
 
         }
     }
-
-    //finally combine it with our ambient color
-    finalLighting += (ambientColor * colorTint.rgb);
-    
 	
     return float4(finalLighting, 1);
 }

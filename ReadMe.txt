@@ -1,0 +1,3 @@
+I added support for "roughness" maps. These actually act as specular scale maps.
+The effect is subtle but it adds some nice detail. The bricks on the sphere all reflect different amounts from each other. The blue tarp reflects with scratches and detail (though with a normal map later it would look a lot better). And the window only reflects on the glass parts (look at the sides of the cube that are in shader).
+The Roughness maps will be used for actualy roughness when we go into PBR.
