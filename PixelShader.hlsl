@@ -31,7 +31,7 @@ float3 Diffuse(float3 normal, float3 dirToLight)
 float1 Specular(float3 dirToCamera, float3 normal, float3 directionToLight, float roughness, float specularScale)
 {
     if (roughness == 1)
-        return 0;
+        return 0.0f;
     
     float specExponent = (1.0f - roughness) * MAX_SPECULAR_EXPONENT;
     
