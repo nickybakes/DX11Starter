@@ -2,6 +2,7 @@
 
 Texture2D T_Diffuse : register(t0); // "t" registers for textures
 Texture2D T_Roughness : register(t1); // "t" registers for textures
+Texture2D T_Normal : register(t2); // "t" registers for textures
 SamplerState BasicSampler : register(s0); // "s" registers for samplers
 
 cbuffer ExternalData : register(b0)
@@ -85,12 +86,41 @@ float4 main(VertexToPixel input) : SV_TARGET
 	//   of the triangle we're rendering
 	
     input.normal = normalize(input.normal);
+    input.tangent = normalize(input.tangent);
+    
+
+    //samples the normal map
+    float3 unpackedNormal = T_Normal.Sample(BasicSampler, input.uv).rgb * 2 - 1;
+    
+    unpackedNormal = normalize(unpackedNormal);
+    
+    float3 N = input.normal;
+    float3 T = input.tangent;
+    T = normalize(T - N * dot(T, N)); // Gram-Schmidt assumes T&N are normalized!
+    float3 B = cross(T, N);
+    float3x3 TBN = float3x3(T, B, N);
+    
+    
+    input.normal = normalize(mul(unpackedNormal, TBN)); // Note multiplication order!
+
+    
     
     float3 dirToCamera = normalize(cameraPosition - input.worldPosition);
     
     float3 surfaceColor = T_Diffuse.Sample(BasicSampler, input.uv).rgb * colorTint.rgb;
     
     float specularScale = 1 - T_Roughness.Sample(BasicSampler, input.uv).r;
+    
+    // Cut the specular if the diffuse contribution is zero
+// - any() returns 1 if any component of the param is non-zero
+// - In this case, diffuse is a single float value
+// - Meaning any() returns 1 if diffuse itself is non-zero
+// - In other words:
+// - If the diffuse amount is 0, any(diffuse) returns 0
+// - If the diffuse amount is != 0, any(diffuse) returns 1
+// - So when diffuse is 0, specular becomes 0
+    specularScale *= any(surfaceColor);
+
     
     float3 finalLighting = (ambientColor * surfaceColor);
     
