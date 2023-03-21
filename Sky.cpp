@@ -1,11 +1,41 @@
 #include "Sky.h"
+#include "Helpers.h"
 
-Sky::Sky(std::shared_ptr<Mesh> mesh, Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler, Microsoft::WRL::ComPtr<ID3D11Device> device, Microsoft::WRL::ComPtr<ID3D11DeviceContext> context)
+Sky::Sky(std::shared_ptr<Mesh> mesh, Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler, Microsoft::WRL::ComPtr<ID3D11Device> device, Microsoft::WRL::ComPtr<ID3D11DeviceContext> context, const std::wstring& relativeFolderPath)
 {
 	this->mesh = mesh;
 	this->sampler = sampler;
 	this->device = device;
 	this->context = context;
+
+	D3D11_RASTERIZER_DESC rasterizerDesc = {};
+	rasterizerDesc.FillMode = D3D11_FILL_SOLID;
+	rasterizerDesc.CullMode = D3D11_CULL_FRONT;
+
+	device->CreateRasterizerState(&rasterizerDesc, &rasterizer);
+
+	D3D11_DEPTH_STENCIL_DESC depthStencilDesc = {};
+	depthStencilDesc.DepthEnable = true;
+	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+
+	device->CreateDepthStencilState(&depthStencilDesc, &depthStencil);
+
+
+	this->CreateCubemap(
+		FixPath(relativeFolderPath + L"right.png").c_str(),
+		FixPath(relativeFolderPath + L"left.png").c_str(),
+		FixPath(relativeFolderPath + L"up.png").c_str(),
+		FixPath(relativeFolderPath + L"down.png").c_str(),
+		FixPath(relativeFolderPath + L"front.png").c_str(),
+		FixPath(relativeFolderPath + L"back.png").c_str()
+	);
+}
+
+void Sky::Draw(Microsoft::WRL::ComPtr<ID3D11DeviceContext> context, Camera camera)
+{
+	context->RSSetState(rasterizer.Get());
+	context->OMSetDepthStencilState(depthStencil.Get(), 0);
+
 }
 
 
