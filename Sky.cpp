@@ -20,6 +20,11 @@ Sky::Sky(std::shared_ptr<Mesh> mesh, Microsoft::WRL::ComPtr<ID3D11SamplerState> 
 
 	device->CreateDepthStencilState(&depthStencilDesc, &depthStencil);
 
+	vs = std::make_shared<SimpleVertexShader>(device, context,
+		FixPath(L"SkyVertexShader.cso").c_str());
+	ps = std::make_shared<SimplePixelShader>(device, context,
+		FixPath(L"SkyPixelShader.cso").c_str());
+
 
 	this->CreateCubemap(
 		FixPath(relativeFolderPath + L"right.png").c_str(),
@@ -31,11 +36,28 @@ Sky::Sky(std::shared_ptr<Mesh> mesh, Microsoft::WRL::ComPtr<ID3D11SamplerState> 
 	);
 }
 
-void Sky::Draw(Microsoft::WRL::ComPtr<ID3D11DeviceContext> context, Camera camera)
+void Sky::Draw(Microsoft::WRL::ComPtr<ID3D11DeviceContext> context, std::shared_ptr<Camera> camera)
 {
 	context->RSSetState(rasterizer.Get());
 	context->OMSetDepthStencilState(depthStencil.Get(), 0);
 
+
+	vs->SetShader();
+	ps->SetShader();
+
+	vs->SetMatrix4x4("view", camera->GetViewMatrix());
+	vs->SetMatrix4x4("projection", camera->GetProjectionMatrix());
+	vs->CopyAllBufferData();
+
+	ps->SetShaderResourceView("T_Sky", srv);
+	ps->SetSamplerState("Sampler", sampler);
+
+	// Set mesh buffers and draw
+	mesh->Draw();
+
+	// Reset my rasterizer state to the default
+	context->RSSetState(0); // Null (or 0) puts back the defaults
+	context->OMSetDepthStencilState(0, 0);
 }
 
 

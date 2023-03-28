@@ -10,6 +10,7 @@
 #include "Camera.h"
 #include "SimpleShader.h"
 #include "Lights.h"
+#include "Sky.h"
 
 
 class Game 
@@ -43,6 +44,8 @@ private:
 	std::vector<std::shared_ptr<Entity>> entities;
 
 	std::vector<std::shared_ptr<Camera>> cameras;
+
+	std::shared_ptr<Sky> sky;
 
 	// Note the usage of ComPtr below
 	//  - This is a smart pointer for objects that abide by the

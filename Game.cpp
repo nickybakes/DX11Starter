@@ -134,6 +134,8 @@ void Game::Init()
 
 	CreateGeometry();
 
+	sky = make_shared<Sky>(meshes[2], sampler, device, context, L"../../Assets/Textures/Skies/Planet/");
+
 
 
 	cameras = {
@@ -452,6 +454,8 @@ void Game::Draw(float deltaTime, float totalTime)
 		entity->GetMaterial()->GetPixelShader()->SetFloat3("ambientColor", ambientColor);
 		entity->Draw(context, cameras[activeCameraIndex]);
 	}
+
+	sky->Draw(context, cameras[activeCameraIndex]);
 
 	//draw ImGui
 	ImGui::Render();

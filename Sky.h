@@ -19,7 +19,7 @@ public:
 
 	Sky(std::shared_ptr<Mesh> mesh, Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler, Microsoft::WRL::ComPtr<ID3D11Device> device, Microsoft::WRL::ComPtr<ID3D11DeviceContext> context, const std::wstring& relativeFolderPath);
 
-	void Draw(Microsoft::WRL::ComPtr<ID3D11DeviceContext> context, Camera camera);
+	void Draw(Microsoft::WRL::ComPtr<ID3D11DeviceContext> context, std::shared_ptr<Camera> camera);
 
 
 private:
