@@ -84,9 +84,8 @@ void Game::Init()
 	device->CreateSamplerState(&samplerDescription, sampler.GetAddressOf());
 
 	//load textures
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> brick_SRV_D;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> brick_SRV_R;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> brick_SRV_N;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cushion_SRV_D;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cushion_SRV_N;
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tarp_SRV_D;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tarp_SRV_R;
@@ -96,19 +95,19 @@ void Game::Init()
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> window_SRV_R;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> window_SRV_N;
 
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> brick_SRV_D;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> brick_SRV_R;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> brick_SRV_N;
 
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/T_Brick_01_D.png").c_str(), 0, brick_SRV_D.GetAddressOf());
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/T_Brick_01_R.png").c_str(), 0, brick_SRV_R.GetAddressOf());
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/T_Brick_01_N.png").c_str(), 0, brick_SRV_N.GetAddressOf());
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/cushion.png").c_str(), 0, cushion_SRV_D.GetAddressOf());
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/cushion_normals.png").c_str(), 0, cushion_SRV_N.GetAddressOf());
 
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/T_Tarp_01_D.png").c_str(), 0, tarp_SRV_D.GetAddressOf());
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/T_Hair_02.png").c_str(), 0, tarp_SRV_R.GetAddressOf());
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/T_Tarp_01_N.png").c_str(), 0, tarp_SRV_N.GetAddressOf());
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/cobblestone.png").c_str(), 0, tarp_SRV_D.GetAddressOf());
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/T_Tarp_01_R.png").c_str(), 0, tarp_SRV_R.GetAddressOf());
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/cobblestone_normals.png").c_str(), 0, tarp_SRV_N.GetAddressOf());
 
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/T_Window_02_D.png").c_str(), 0, window_SRV_D.GetAddressOf());
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/T_Window_02_R.png").c_str(), 0, window_SRV_R.GetAddressOf());
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/T_Window_02_N.png").c_str(), 0, window_SRV_N.GetAddressOf());
-
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/rock.png").c_str(), 0, window_SRV_D.GetAddressOf());
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/rock_normals.png").c_str(), 0, window_SRV_N.GetAddressOf());
 
 	//create materials
 	shared_ptr<Material> mat0 = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(1, 1, 1, 1), .94f);
@@ -116,9 +115,9 @@ void Game::Init()
 	shared_ptr<Material> mat2 = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(1, 1, 1, 1), .5f);
 
 	mat0->AddSampler("BasicSampler", sampler);
-	mat0->AddTextureSRV("T_Diffuse", brick_SRV_D);
-	mat0->AddTextureSRV("T_Roughness", brick_SRV_R);
-	mat0->AddTextureSRV("T_Normal", brick_SRV_N);
+	mat0->AddTextureSRV("T_Diffuse", cushion_SRV_D);
+	mat0->AddTextureSRV("T_Roughness", tarp_SRV_R);
+	mat0->AddTextureSRV("T_Normal", cushion_SRV_N);
 
 	mat1->AddSampler("BasicSampler", sampler);
 	mat1->AddTextureSRV("T_Diffuse", tarp_SRV_D);
@@ -130,11 +129,11 @@ void Game::Init()
 	mat2->AddTextureSRV("T_Roughness", window_SRV_R);
 	mat2->AddTextureSRV("T_Normal", window_SRV_N);
 
-	materials = { mat0, mat1, mat2 };
+	materials = { mat0, mat1, mat2};
 
 	CreateGeometry();
 
-	sky = make_shared<Sky>(meshes[2], sampler, device, context, L"../../Assets/Textures/Skies/Planet/");
+	sky = make_shared<Sky>(meshes[2], sampler, device, context, L"../../Assets/Textures/Skies/Clouds Blue/");
 
 
 
@@ -215,6 +214,8 @@ void Game::Init()
 	pointLight2.Range = 5.0f;
 
 	lights = { directionalLight1, directionalLight2, directionalLight3, pointLight1, pointLight2 };
+
+
 
 	// Set initial graphics API state
 	//  - These settings persist until we change them

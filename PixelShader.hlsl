@@ -90,13 +90,11 @@ float4 main(VertexToPixel input) : SV_TARGET
     
 
     //samples the normal map
-    float3 unpackedNormal = T_Normal.Sample(BasicSampler, input.uv).rgb * 2 - 1;
+    float3 unpackedNormal = T_Normal.Sample(BasicSampler, input.uv).rgb * 2.0f - 1.0f;
     
-    unpackedNormal = normalize(unpackedNormal);
     
     float3 N = input.normal;
-    float3 T = input.tangent;
-    T = normalize(T - N * dot(T, N)); // Gram-Schmidt assumes T&N are normalized!
+    float3 T = normalize(input.tangent - N * dot(input.tangent, N)); // Gram-Schmidt assumes T&N are normalized!
     float3 B = cross(T, N);
     float3x3 TBN = float3x3(T, B, N);
     

@@ -12,13 +12,14 @@ Sky::Sky(std::shared_ptr<Mesh> mesh, Microsoft::WRL::ComPtr<ID3D11SamplerState> 
 	rasterizerDesc.FillMode = D3D11_FILL_SOLID;
 	rasterizerDesc.CullMode = D3D11_CULL_FRONT;
 
-	device->CreateRasterizerState(&rasterizerDesc, &rasterizer);
+	device->CreateRasterizerState(&rasterizerDesc, rasterizer.GetAddressOf());
 
 	D3D11_DEPTH_STENCIL_DESC depthStencilDesc = {};
 	depthStencilDesc.DepthEnable = true;
 	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 
-	device->CreateDepthStencilState(&depthStencilDesc, &depthStencil);
+	device->CreateDepthStencilState(&depthStencilDesc, depthStencil.GetAddressOf());
 
 	vs = std::make_shared<SimpleVertexShader>(device, context,
 		FixPath(L"SkyVertexShader.cso").c_str());
@@ -26,7 +27,7 @@ Sky::Sky(std::shared_ptr<Mesh> mesh, Microsoft::WRL::ComPtr<ID3D11SamplerState> 
 		FixPath(L"SkyPixelShader.cso").c_str());
 
 
-	this->CreateCubemap(
+	srv = this->CreateCubemap(
 		FixPath(relativeFolderPath + L"right.png").c_str(),
 		FixPath(relativeFolderPath + L"left.png").c_str(),
 		FixPath(relativeFolderPath + L"up.png").c_str(),
@@ -45,8 +46,8 @@ void Sky::Draw(Microsoft::WRL::ComPtr<ID3D11DeviceContext> context, std::shared_
 	vs->SetShader();
 	ps->SetShader();
 
-	vs->SetMatrix4x4("view", camera->GetViewMatrix());
-	vs->SetMatrix4x4("projection", camera->GetProjectionMatrix());
+	vs->SetMatrix4x4("viewMatrix", camera->GetViewMatrix());
+	vs->SetMatrix4x4("projectionMatrix", camera->GetProjectionMatrix());
 	vs->CopyAllBufferData();
 
 	ps->SetShaderResourceView("T_Sky", srv);

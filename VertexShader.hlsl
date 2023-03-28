@@ -32,11 +32,12 @@ VertexToPixel main( VertexShaderInput input )
 	matrix wvp = mul(projectionMatrix, mul(viewMatrix, worldMatrix));
 	output.screenPosition = mul(wvp, float4(input.localPosition, 1.0f));
 	
-    output.normal = mul((float3x3) worldInvTranspose, input.normal);
+    output.normal = normalize(mul((float3x3) worldInvTranspose, input.normal));
+	
+    output.tangent = normalize(mul((float3x3) worldInvTranspose, input.tangent));
 	
     output.worldPosition = mul(worldMatrix, float4(input.localPosition, 1)).xyz;
 	
-    output.tangent = mul((float3x3) worldMatrix, input.tangent);
 
 	output.uv = input.uv;
 
