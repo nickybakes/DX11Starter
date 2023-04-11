@@ -22,7 +22,6 @@ public:
 	std::shared_ptr<SimplePixelShader> GetPixelShader();
 
 	XMFLOAT4 GetColorTint();
-	float GetRoughness();
 
 	void SetVertexShader(std::shared_ptr<SimpleVertexShader> _vertexShader);
 	void SetPixelShader(std::shared_ptr<SimplePixelShader> _pixelShader);
@@ -31,7 +30,6 @@ public:
 	void AddSampler(std::string key, Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler);
 
 	void SetColorTint(XMFLOAT4 _colorTint);
-	void SetRoughness(float _roughness);
 
 
 private:
@@ -43,8 +41,6 @@ private:
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D11SamplerState>> samplers;
 
 	XMFLOAT4 colorTint;
-
-	float roughness;
 
 };
 

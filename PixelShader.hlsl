@@ -1,16 +1,17 @@
 #include "ShaderIncludes.hlsli"
 
-Texture2D T_Diffuse : register(t0); // "t" registers for textures
-Texture2D T_Roughness : register(t1); // "t" registers for textures
-Texture2D T_Normal : register(t2); // "t" registers for textures
+Texture2D T_Albedo : register(t0);
+Texture2D T_Normal : register(t1);
+Texture2D T_Roughness : register(t2);
+Texture2D T_Metalness : register(t3); // "t" registers for textures
 SamplerState BasicSampler : register(s0); // "s" registers for samplers
+
+
 
 cbuffer ExternalData : register(b0)
 {
     float4 colorTint;
-    float roughness;
     float3 cameraPosition;
-    float3 ambientColor;
     
     Light lights[5];
 
@@ -105,7 +106,12 @@ float4 main(VertexToPixel input) : SV_TARGET
     
     float3 dirToCamera = normalize(cameraPosition - input.worldPosition);
     
-    float3 surfaceColor = pow(T_Diffuse.Sample(BasicSampler, input.uv).rgb, 2.2f) * colorTint.rgb;
+    float3 surfaceColor = pow(T_Albedo.Sample(BasicSampler, input.uv).rgb, 2.2f) * colorTint.rgb;
+    
+    float roughness = T_Roughness.Sample(BasicSampler, input.uv).r;
+    float metalness = T_Metalness.Sample(BasicSampler, input.uv).r;
+    
+    float3 specularColor = lerp(F0_NON_METAL, surfaceColor.rgb, metalness);
     
     float specularScale = 1 - T_Roughness.Sample(BasicSampler, input.uv).r;
     
@@ -120,7 +126,7 @@ float4 main(VertexToPixel input) : SV_TARGET
     specularScale *= any(surfaceColor);
 
     
-    float3 finalLighting = (ambientColor * surfaceColor);
+    float3 finalLighting = surfaceColor;
     
     //loop through our light array and calculate all lighting for this pixel
     for (int i = 0; i < 5; i++)

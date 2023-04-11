@@ -46,7 +46,6 @@ void Entity::Draw(Microsoft::WRL::ComPtr<ID3D11DeviceContext> context, shared_pt
 
 	std::shared_ptr<SimplePixelShader> ps = material->GetPixelShader();
 	ps->SetFloat4("colorTint", material->GetColorTint());
-	ps->SetFloat("roughness", material->GetRoughness());
 
 	ps->CopyAllBufferData();
 

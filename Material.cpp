@@ -5,7 +5,6 @@ Material::Material(std::shared_ptr<SimpleVertexShader> _vertexShader, std::share
 	vertexShader = _vertexShader;
 	pixelShader = _pixelShader;
 	colorTint = _colorTint;
-	roughness = _roughness;
 }
 
 void Material::PrepareMaterial()
@@ -31,11 +30,6 @@ XMFLOAT4 Material::GetColorTint()
 	return colorTint;
 }
 
-float Material::GetRoughness()
-{
-	return roughness;
-}
-
 void Material::SetVertexShader(std::shared_ptr<SimpleVertexShader> _vertexShader)
 {
 	vertexShader = _vertexShader;
@@ -59,9 +53,4 @@ void Material::AddSampler(std::string key, Microsoft::WRL::ComPtr<ID3D11SamplerS
 void Material::SetColorTint(XMFLOAT4 _colorTint)
 {
 	colorTint = _colorTint;
-}
-
-void Material::SetRoughness(float _roughness)
-{
-	this->roughness = _roughness;
 }

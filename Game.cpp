@@ -452,7 +452,6 @@ void Game::Draw(float deltaTime, float totalTime)
 	////loop through our vector of mesh pointers and draw each one!
 	for (std::shared_ptr<Entity> entity : entities)
 	{
-		entity->GetMaterial()->GetPixelShader()->SetFloat3("ambientColor", ambientColor);
 		entity->Draw(context, cameras[activeCameraIndex]);
 	}
 
