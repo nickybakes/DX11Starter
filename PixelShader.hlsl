@@ -43,12 +43,20 @@ float1 Specular(float3 dirToCamera, float3 normal, float3 directionToLight, floa
 }
 
 //Calculates all lighting data for a directional light for this pixel
-float3 HandleDirectionalLight(Light light, float3 dirToCamera, float3 normal, float3 surfaceColor, float roughness, float specularScale)
+float3 HandleDirectionalLight(Light light, float3 camPos, float3 worldPos, float3 normal, float3 surfaceColor, float roughness, float metalness, float3 specColor)
 {
-    float3 dirToLight = normalize(-light.Direction.xyz);
-    float3 diffuse = Diffuse(normal, dirToLight);
+    float3 toLight = normalize(-light.Direction.xyz);
+    float3 toCam = normalize(camPos - worldPos);
 
-    return light.Intensity * light.Color * (diffuse * surfaceColor.rgb + Specular(dirToCamera, normal, dirToLight, roughness, specularScale));
+    
+    // Calculate the light amounts
+    float diff = DiffusePBR(normal, toLight);
+    float3 F;
+    float3 spec = MicrofacetBRDF(normal, toLight, toCam, roughness, specColor, F);
+// Calculate diffuse with energy conservation, including cutting diffuse for metals
+    float3 balancedDiff = DiffuseEnergyConserve(diff, F, metalness);
+// Combine the final diffuse and specular values for this light
+    return (balancedDiff * surfaceColor + spec) * light.Intensity * light.Color;
 }
 
 //Calculates the attenuation value for a point light
@@ -60,13 +68,19 @@ float Attenuate(Light light, float3 worldPos)
 }
 
 //Calculates all lighting data for a point light for this pixel
-float3 HandlePointLight(Light light, float3 worldPosition, float3 dirToCamera, float3 normal, float3 surfaceColor, float roughness, float specularScale)
+float3 HandlePointLight(Light light, float3 camPos, float3 worldPos, float3 normal, float3 surfaceColor, float roughness, float metalness, float3 specColor)
 {
-    float3 dirToLight = normalize(light.Position - worldPosition);
+    float3 toLight = normalize(light.Position - worldPos);
+    float3 toCam = normalize(camPos - worldPos);
     
-    float3 diffuse = Diffuse(normal, dirToLight);
-    
-    return light.Intensity * light.Color * (diffuse * surfaceColor.rgb + Specular(dirToCamera, normal, dirToLight, roughness, specularScale)) * Attenuate(light, worldPosition);
+    // Calculate the light amounts
+    float diff = DiffusePBR(normal, toLight);
+    float3 F;
+    float3 spec = MicrofacetBRDF(normal, toLight, toCam, roughness, specColor, F);
+// Calculate diffuse with energy conservation, including cutting diffuse for metals
+    float3 balancedDiff = DiffuseEnergyConserve(diff, F, metalness);
+// Combine the final diffuse and specular values for this light
+    return (balancedDiff * surfaceColor + spec) * light.Intensity * light.Color * Attenuate(light, worldPos);
 }
 
 
@@ -101,10 +115,6 @@ float4 main(VertexToPixel input) : SV_TARGET
     
     
     input.normal = normalize(mul(unpackedNormal, TBN)); // Note multiplication order!
-
-    
-    
-    float3 dirToCamera = normalize(cameraPosition - input.worldPosition);
     
     float3 surfaceColor = pow(T_Albedo.Sample(BasicSampler, input.uv).rgb, 2.2f) * colorTint.rgb;
     
@@ -113,7 +123,8 @@ float4 main(VertexToPixel input) : SV_TARGET
     
     float3 specularColor = lerp(F0_NON_METAL, surfaceColor.rgb, metalness);
     
-    float specularScale = 1 - T_Roughness.Sample(BasicSampler, input.uv).r;
+    
+    //float specularScale = 1 - T_Roughness.Sample(BasicSampler, input.uv).r;
     
     // Cut the specular if the diffuse contribution is zero
 // - any() returns 1 if any component of the param is non-zero
@@ -123,7 +134,7 @@ float4 main(VertexToPixel input) : SV_TARGET
 // - If the diffuse amount is 0, any(diffuse) returns 0
 // - If the diffuse amount is != 0, any(diffuse) returns 1
 // - So when diffuse is 0, specular becomes 0
-    specularScale *= any(surfaceColor);
+    //specularScale *= any(surfaceColor);
 
     
     float3 finalLighting = surfaceColor;
@@ -131,14 +142,15 @@ float4 main(VertexToPixel input) : SV_TARGET
     //loop through our light array and calculate all lighting for this pixel
     for (int i = 0; i < 5; i++)
     {
+        
         switch (lights[i].Type)
         {
             case (LIGHT_TYPE_DIRECTIONAL):
-                finalLighting += HandleDirectionalLight(lights[i], dirToCamera, input.normal, surfaceColor, roughness, specularScale);
+                finalLighting += HandleDirectionalLight(lights[i], cameraPosition, input.worldPosition, input.normal, surfaceColor, roughness, metalness, specularColor);
                 break;
             
             case (LIGHT_TYPE_POINT):
-                finalLighting += HandlePointLight(lights[i], input.worldPosition, dirToCamera, input.normal, surfaceColor, roughness, specularScale);
+                finalLighting += HandlePointLight(lights[i], cameraPosition, input.worldPosition, input.normal, surfaceColor, roughness, metalness, specularColor);
                 break;
 
         }

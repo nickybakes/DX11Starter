@@ -14,7 +14,7 @@ class Material
 
 public:
 
-	Material(std::shared_ptr<SimpleVertexShader> _vertexShader, std::shared_ptr<SimplePixelShader> _pixelShader, XMFLOAT4 _colorTint, float roughness);
+	Material(std::shared_ptr<SimpleVertexShader> _vertexShader, std::shared_ptr<SimplePixelShader> _pixelShader, XMFLOAT4 _colorTint);
 
 	void PrepareMaterial();
 

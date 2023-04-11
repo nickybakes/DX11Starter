@@ -32,6 +32,7 @@ private:
 
 	// Initialization helper methods - feel free to customize, combine, remove, etc.
 	void LoadShaders(); 
+	shared_ptr<Material> CreatePBRMaterial(const std::wstring& materialName, Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler);
 	void CreateGeometry();
 
 	/// <summary>

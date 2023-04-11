@@ -83,53 +83,8 @@ void Game::Init()
 	samplerDescription.MaxLOD = D3D11_FLOAT32_MAX;
 	device->CreateSamplerState(&samplerDescription, sampler.GetAddressOf());
 
-	//load textures
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cushion_SRV_D;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cushion_SRV_N;
 
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tarp_SRV_D;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tarp_SRV_R;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tarp_SRV_N;
-
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> window_SRV_D;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> window_SRV_R;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> window_SRV_N;
-
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> brick_SRV_D;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> brick_SRV_R;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> brick_SRV_N;
-
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/cushion.png").c_str(), 0, cushion_SRV_D.GetAddressOf());
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/cushion_normals.png").c_str(), 0, cushion_SRV_N.GetAddressOf());
-
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/cobblestone.png").c_str(), 0, tarp_SRV_D.GetAddressOf());
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/T_Tarp_01_R.png").c_str(), 0, tarp_SRV_R.GetAddressOf());
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/cobblestone_normals.png").c_str(), 0, tarp_SRV_N.GetAddressOf());
-
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/rock.png").c_str(), 0, window_SRV_D.GetAddressOf());
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/rock_normals.png").c_str(), 0, window_SRV_N.GetAddressOf());
-
-	//create materials
-	shared_ptr<Material> mat0 = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(1, 1, 1, 1), .94f);
-	shared_ptr<Material> mat1 = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(1, 1, 1, 1), .85f);
-	shared_ptr<Material> mat2 = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(1, 1, 1, 1), .5f);
-
-	mat0->AddSampler("BasicSampler", sampler);
-	mat0->AddTextureSRV("T_Diffuse", cushion_SRV_D);
-	mat0->AddTextureSRV("T_Roughness", tarp_SRV_R);
-	mat0->AddTextureSRV("T_Normal", cushion_SRV_N);
-
-	mat1->AddSampler("BasicSampler", sampler);
-	mat1->AddTextureSRV("T_Diffuse", tarp_SRV_D);
-	mat1->AddTextureSRV("T_Roughness", tarp_SRV_R);
-	mat1->AddTextureSRV("T_Normal", tarp_SRV_N);
-
-	mat2->AddSampler("BasicSampler", sampler);
-	mat2->AddTextureSRV("T_Diffuse", window_SRV_D);
-	mat2->AddTextureSRV("T_Roughness", window_SRV_R);
-	mat2->AddTextureSRV("T_Normal", window_SRV_N);
-
-	materials = { mat0, mat1, mat2};
+	materials = { CreatePBRMaterial(L"bronze", sampler), CreatePBRMaterial(L"floor", sampler), CreatePBRMaterial(L"wood", sampler) };
 
 	CreateGeometry();
 
@@ -239,6 +194,28 @@ void Game::Init()
 	ImGui::StyleColorsDark();
 	//ImGui::StyleColorsLight();
 	//ImGui::StyleColorsClassic();
+}
+
+shared_ptr<Material> Game::CreatePBRMaterial(const std::wstring& materialName, Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler) {
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> albedo;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> normal;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> roughness;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metalness;
+
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/PBR/"+ materialName + L"_albedo.png").c_str(), 0, albedo.GetAddressOf());
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/PBR/" + materialName + L"_normal.png").c_str(), 0, normal.GetAddressOf());
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/PBR/" + materialName + L"_roughness.png").c_str(), 0, roughness.GetAddressOf());
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/PBR/" + materialName + L"_metalness.png").c_str(), 0, metalness.GetAddressOf());
+
+	shared_ptr<Material> mat = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(1, 1, 1, 1));
+
+	mat->AddSampler("BasicSampler", sampler);
+	mat->AddTextureSRV("T_Albedo", albedo);
+	mat->AddTextureSRV("T_Normal", normal);
+	mat->AddTextureSRV("T_Roughness", roughness);
+	mat->AddTextureSRV("T_Metalness", metalness);
+
+	return mat;
 }
 
 // --------------------------------------------------------

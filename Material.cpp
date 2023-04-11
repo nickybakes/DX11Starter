@@ -1,6 +1,6 @@
 #include "Material.h"
 
-Material::Material(std::shared_ptr<SimpleVertexShader> _vertexShader, std::shared_ptr<SimplePixelShader> _pixelShader, XMFLOAT4 _colorTint, float _roughness)
+Material::Material(std::shared_ptr<SimpleVertexShader> _vertexShader, std::shared_ptr<SimplePixelShader> _pixelShader, XMFLOAT4 _colorTint)
 {
 	vertexShader = _vertexShader;
 	pixelShader = _pixelShader;
