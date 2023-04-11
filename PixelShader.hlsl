@@ -105,7 +105,7 @@ float4 main(VertexToPixel input) : SV_TARGET
     
     float3 dirToCamera = normalize(cameraPosition - input.worldPosition);
     
-    float3 surfaceColor = T_Diffuse.Sample(BasicSampler, input.uv).rgb * colorTint.rgb;
+    float3 surfaceColor = pow(T_Diffuse.Sample(BasicSampler, input.uv).rgb, 2.2f) * colorTint.rgb;
     
     float specularScale = 1 - T_Roughness.Sample(BasicSampler, input.uv).r;
     
@@ -138,5 +138,5 @@ float4 main(VertexToPixel input) : SV_TARGET
         }
     }
 	
-    return float4(finalLighting, 1);
+    return float4(pow(finalLighting, 1.0f / 2.2f), 1);
 }
