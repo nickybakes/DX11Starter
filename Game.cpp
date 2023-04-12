@@ -84,7 +84,14 @@ void Game::Init()
 	device->CreateSamplerState(&samplerDescription, sampler.GetAddressOf());
 
 
-	materials = { CreatePBRMaterial(L"bronze", sampler), CreatePBRMaterial(L"floor", sampler), CreatePBRMaterial(L"wood", sampler) };
+	materials = { CreatePBRMaterial(L"bronze", sampler),
+		CreatePBRMaterial(L"cobblestone", sampler),
+		CreatePBRMaterial(L"floor", sampler),
+		CreatePBRMaterial(L"paint", sampler),
+		CreatePBRMaterial(L"rough", sampler),
+		CreatePBRMaterial(L"scratched", sampler),
+		CreatePBRMaterial(L"wood", sampler)
+	};
 
 	CreateGeometry();
 
@@ -202,10 +209,10 @@ shared_ptr<Material> Game::CreatePBRMaterial(const std::wstring& materialName, M
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> roughness;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metalness;
 
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/PBR/"+ materialName + L"_albedo.png").c_str(), 0, albedo.GetAddressOf());
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/PBR/" + materialName + L"_normal.png").c_str(), 0, normal.GetAddressOf());
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/PBR/" + materialName + L"_albedo.png").c_str(), 0, albedo.GetAddressOf());
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/PBR/" + materialName + L"_normals.png").c_str(), 0, normal.GetAddressOf());
 	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/PBR/" + materialName + L"_roughness.png").c_str(), 0, roughness.GetAddressOf());
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/PBR/" + materialName + L"_metalness.png").c_str(), 0, metalness.GetAddressOf());
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/PBR/" + materialName + L"_metal.png").c_str(), 0, metalness.GetAddressOf());
 
 	shared_ptr<Material> mat = make_shared<Material>(vertexShader, pixelShader, XMFLOAT4(1, 1, 1, 1));
 
@@ -244,10 +251,10 @@ std::vector<DirectX::XMFLOAT3> scales;
 // --------------------------------------------------------
 void Game::CreateGeometry()
 {
-	
+
 
 	//finally, add the meshes to our vector
-	meshes = { 
+	meshes = {
 		std::make_shared<Mesh>(FixPath(L"../../Assets/Meshes/sphere.obj").c_str(), device, context),
 		std::make_shared<Mesh>(FixPath(L"../../Assets/Meshes/cylinder.obj").c_str(), device, context),
 		std::make_shared<Mesh>(FixPath(L"../../Assets/Meshes/cube.obj").c_str(), device, context),
@@ -255,7 +262,19 @@ void Game::CreateGeometry()
 		std::make_shared<Mesh>(FixPath(L"../../Assets/Meshes/helix.obj").c_str(), device, context),
 	};
 
-	entities = { std::make_shared<Entity>(meshes[0]), std::make_shared<Entity>(meshes[1]), std::make_shared<Entity>(meshes[2]), std::make_shared<Entity>(meshes[3]), std::make_shared<Entity>(meshes[4])};
+	entities = { std::make_shared<Entity>(meshes[0]),
+		std::make_shared<Entity>(meshes[1]),
+		std::make_shared<Entity>(meshes[2]),
+		std::make_shared<Entity>(meshes[3]),
+		std::make_shared<Entity>(meshes[4]),
+		std::make_shared<Entity>(meshes[0]),
+		std::make_shared<Entity>(meshes[0]),
+		std::make_shared<Entity>(meshes[0]),
+		std::make_shared<Entity>(meshes[0]),
+		std::make_shared<Entity>(meshes[0]),
+		std::make_shared<Entity>(meshes[0]),
+		std::make_shared<Entity>(meshes[0])
+	};
 
 	entities[0]->SetMaterial(materials[0]);
 	entities[1]->SetMaterial(materials[1]);
@@ -263,11 +282,19 @@ void Game::CreateGeometry()
 	entities[3]->SetMaterial(materials[1]);
 	entities[4]->SetMaterial(materials[2]);
 
+	for (int i = 5; i < entities.size(); i++) {
+		entities[i]->SetMaterial(materials[i - 5]);
+	}
+
 	entities[0]->GetTransform()->SetPosition(XMFLOAT3(-6, 0, 0));
 	entities[1]->GetTransform()->SetPosition(XMFLOAT3(-3, 0, 0));
 	entities[2]->GetTransform()->SetPosition(XMFLOAT3(0, 0, 0));
 	entities[3]->GetTransform()->SetPosition(XMFLOAT3(3, 0, 0));
 	entities[4]->GetTransform()->SetPosition(XMFLOAT3(6, 0, 0));
+
+	for (int i = 5; i < entities.size(); i++) {
+		entities[i]->GetTransform()->SetPosition(XMFLOAT3(-8 + ((i-5)*2.5f), 2.5f, 0));
+	}
 
 	for (int i = 0; i < entities.size(); i++) {
 		positions.push_back(entities[i]->GetTransform()->GetPosition());
@@ -327,7 +354,6 @@ void Game::UpdateImGui(float deltaTime, float totalTime)
 		showDemoWindow = !showDemoWindow;
 	}
 
-	ImGui::ColorEdit3("Ambient Color", &ambientColor.x);
 	ImGui::ColorEdit3("Directional Light 1 Color", &lights[0].Color.x);
 	ImGui::ColorEdit3("Directional Light 2 Color", &lights[1].Color.x);
 	ImGui::ColorEdit3("Directional Light 3 Color", &lights[2].Color.x);
@@ -379,18 +405,6 @@ void Game::Update(float deltaTime, float totalTime)
 	UpdateImGui(deltaTime, totalTime);
 
 	cameras[activeCameraIndex]->Update(deltaTime);
-
-	//rotations[0].x = totalTime;
-	//rotations[1].x = totalTime;
-	//rotations[2].x = totalTime;
-	//rotations[3].x = totalTime;
-	//rotations[4].x = totalTime;
-	//rotations[0].y = totalTime;
-	//rotations[1].y = totalTime;
-	//rotations[2].y = totalTime;
-	//rotations[3].y = totalTime;
-	//rotations[4].y = totalTime;
-
 
 	for (int i = 0; i < entities.size(); i++) {
 		entities[i]->GetTransform()->SetPosition(positions[i]);

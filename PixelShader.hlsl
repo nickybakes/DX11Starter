@@ -17,31 +17,6 @@ cbuffer ExternalData : register(b0)
 
 }
 
-//Gets the normalized direction TOWARD a light's direction
-float3 DirectionToLight(Light light)
-{
-    return normalize(-light.Direction.xyz);
-}
-
-//Calculates the diffuse value for this pixel
-float3 Diffuse(float3 normal, float3 dirToLight)
-{
-    return saturate(dot(normal, dirToLight));
-}
-
-//Calculates the specular reflection value for this pixel
-float1 Specular(float3 dirToCamera, float3 normal, float3 directionToLight, float roughness, float specularScale)
-{
-    if (roughness == 1)
-        return 0.0f;
-    
-    float specExponent = (1.0f - roughness) * MAX_SPECULAR_EXPONENT;
-    
-    float3 R = reflect(-directionToLight, normal);
-    
-    return pow(saturate(dot(R, dirToCamera)), specExponent) * specularScale;
-}
-
 //Calculates all lighting data for a directional light for this pixel
 float3 HandleDirectionalLight(Light light, float3 camPos, float3 worldPos, float3 normal, float3 surfaceColor, float roughness, float metalness, float3 specColor)
 {
@@ -54,7 +29,7 @@ float3 HandleDirectionalLight(Light light, float3 camPos, float3 worldPos, float
     float3 F;
     float3 spec = MicrofacetBRDF(normal, toLight, toCam, roughness, specColor, F);
 // Calculate diffuse with energy conservation, including cutting diffuse for metals
-    float3 balancedDiff = DiffuseEnergyConserve(diff, F, metalness);
+    float3 balancedDiff = DiffuseEnergyConserve(diff, spec, metalness);
 // Combine the final diffuse and specular values for this light
     return (balancedDiff * surfaceColor + spec) * light.Intensity * light.Color;
 }
@@ -78,7 +53,7 @@ float3 HandlePointLight(Light light, float3 camPos, float3 worldPos, float3 norm
     float3 F;
     float3 spec = MicrofacetBRDF(normal, toLight, toCam, roughness, specColor, F);
 // Calculate diffuse with energy conservation, including cutting diffuse for metals
-    float3 balancedDiff = DiffuseEnergyConserve(diff, F, metalness);
+    float3 balancedDiff = DiffuseEnergyConserve(diff, spec, metalness);
 // Combine the final diffuse and specular values for this light
     return (balancedDiff * surfaceColor + spec) * light.Intensity * light.Color * Attenuate(light, worldPos);
 }
@@ -123,38 +98,28 @@ float4 main(VertexToPixel input) : SV_TARGET
     
     float3 specularColor = lerp(F0_NON_METAL, surfaceColor.rgb, metalness);
     
-    
-    //float specularScale = 1 - T_Roughness.Sample(BasicSampler, input.uv).r;
-    
-    // Cut the specular if the diffuse contribution is zero
-// - any() returns 1 if any component of the param is non-zero
-// - In this case, diffuse is a single float value
-// - Meaning any() returns 1 if diffuse itself is non-zero
-// - In other words:
-// - If the diffuse amount is 0, any(diffuse) returns 0
-// - If the diffuse amount is != 0, any(diffuse) returns 1
-// - So when diffuse is 0, specular becomes 0
-    //specularScale *= any(surfaceColor);
 
     
-    float3 finalLighting = surfaceColor;
+    float3 finalLighting = surfaceColor * float3(0, 0, 0);
     
     //loop through our light array and calculate all lighting for this pixel
     for (int i = 0; i < 5; i++)
     {
+        Light l = lights[i];
+        l.Direction = normalize(l.Direction);
         
         switch (lights[i].Type)
         {
             case (LIGHT_TYPE_DIRECTIONAL):
-                finalLighting += HandleDirectionalLight(lights[i], cameraPosition, input.worldPosition, input.normal, surfaceColor, roughness, metalness, specularColor);
+                finalLighting += HandleDirectionalLight(l, cameraPosition, input.worldPosition, input.normal, surfaceColor, roughness, metalness, specularColor);
                 break;
             
             case (LIGHT_TYPE_POINT):
-                finalLighting += HandlePointLight(lights[i], cameraPosition, input.worldPosition, input.normal, surfaceColor, roughness, metalness, specularColor);
+                finalLighting += HandlePointLight(l, cameraPosition, input.worldPosition, input.normal, surfaceColor, roughness, metalness, specularColor);
                 break;
 
         }
     }
-	
+    
     return float4(pow(finalLighting, 1.0f / 2.2f), 1);
 }
