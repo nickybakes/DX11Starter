@@ -32,7 +32,7 @@ void Entity::SetMaterial(shared_ptr<Material> _material)
 	material = _material;
 }
 
-void Entity::Draw(Microsoft::WRL::ComPtr<ID3D11DeviceContext> context, shared_ptr<Camera> camera) {
+void Entity::Draw(Microsoft::WRL::ComPtr<ID3D11DeviceContext> context, shared_ptr<Camera> camera, XMFLOAT4X4 shadowViewMatrix, XMFLOAT4X4 shadowProjectionMatrix) {
 
 	material->PrepareMaterial();
 
@@ -41,6 +41,9 @@ void Entity::Draw(Microsoft::WRL::ComPtr<ID3D11DeviceContext> context, shared_pt
 	vs->SetMatrix4x4("viewMatrix", camera->GetViewMatrix()); // names in your
 	vs->SetMatrix4x4("projectionMatrix", camera->GetProjectionMatrix()); // shader’s cbuffer!
 	vs->SetMatrix4x4("worldInvTranspose", transform->GetWorldInverseTransposeMatrix());
+
+	vs->SetMatrix4x4("shadowProjection", shadowProjectionMatrix);
+	vs->SetMatrix4x4("shadowView", shadowViewMatrix);
 
 	vs->CopyAllBufferData();
 

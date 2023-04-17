@@ -35,6 +35,10 @@ private:
 	shared_ptr<Material> CreatePBRMaterial(const std::wstring& materialName, Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler);
 	void CreateGeometry();
 
+	void CreateShadowResources();
+
+	void RenderShadows();
+
 	/// <summary>
 	/// Updates the ImGui at the beginning of each frame.
 	/// </summary>
@@ -60,6 +64,13 @@ private:
 	XMFLOAT3 ambientColor;
 
 	std::vector<Light> lights;
+
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> shadowDSV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shadowSRV;
+	Microsoft::WRL::ComPtr<ID3D11RasterizerState> shadowRasterizer;
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> shadowSampler;
+	DirectX::XMFLOAT4X4 shadowViewMatrix;
+	DirectX::XMFLOAT4X4 shadowProjectionMatrix;
 
 
 };

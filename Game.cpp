@@ -95,6 +95,8 @@ void Game::Init()
 
 	CreateGeometry();
 
+	CreateShadowResources();
+
 	sky = make_shared<Sky>(meshes[2], sampler, device, context, L"../../Assets/Textures/Skies/Clouds Blue/");
 
 
@@ -260,6 +262,7 @@ void Game::CreateGeometry()
 		std::make_shared<Mesh>(FixPath(L"../../Assets/Meshes/cube.obj").c_str(), device, context),
 		std::make_shared<Mesh>(FixPath(L"../../Assets/Meshes/torus.obj").c_str(), device, context),
 		std::make_shared<Mesh>(FixPath(L"../../Assets/Meshes/helix.obj").c_str(), device, context),
+		std::make_shared<Mesh>(FixPath(L"../../Assets/Meshes/quad.obj").c_str(), device, context),
 	};
 
 	entities = { std::make_shared<Entity>(meshes[0]),
@@ -267,13 +270,14 @@ void Game::CreateGeometry()
 		std::make_shared<Entity>(meshes[2]),
 		std::make_shared<Entity>(meshes[3]),
 		std::make_shared<Entity>(meshes[4]),
+		std::make_shared<Entity>(meshes[5]),
 		std::make_shared<Entity>(meshes[0]),
 		std::make_shared<Entity>(meshes[0]),
 		std::make_shared<Entity>(meshes[0]),
 		std::make_shared<Entity>(meshes[0]),
 		std::make_shared<Entity>(meshes[0]),
 		std::make_shared<Entity>(meshes[0]),
-		std::make_shared<Entity>(meshes[0])
+		std::make_shared<Entity>(meshes[0]),
 	};
 
 	entities[0]->SetMaterial(materials[0]);
@@ -281,19 +285,22 @@ void Game::CreateGeometry()
 	entities[2]->SetMaterial(materials[2]);
 	entities[3]->SetMaterial(materials[1]);
 	entities[4]->SetMaterial(materials[2]);
+	entities[5]->SetMaterial(materials[3]);
 
-	for (int i = 5; i < entities.size(); i++) {
-		entities[i]->SetMaterial(materials[i - 5]);
+	for (int i = 6; i < entities.size(); i++) {
+		entities[i]->SetMaterial(materials[i - 6]);
 	}
 
 	entities[0]->GetTransform()->SetPosition(XMFLOAT3(-6, 0, 0));
 	entities[1]->GetTransform()->SetPosition(XMFLOAT3(-3, 0, 0));
-	entities[2]->GetTransform()->SetPosition(XMFLOAT3(0, 0, 0));
+	entities[2]->GetTransform()->SetPosition(XMFLOAT3(0, 2, -3));
 	entities[3]->GetTransform()->SetPosition(XMFLOAT3(3, 0, 0));
 	entities[4]->GetTransform()->SetPosition(XMFLOAT3(6, 0, 0));
+	entities[5]->GetTransform()->SetPosition(XMFLOAT3(0, -2, 5));
+	entities[5]->GetTransform()->SetScale(XMFLOAT3(10, 1, 10));
 
-	for (int i = 5; i < entities.size(); i++) {
-		entities[i]->GetTransform()->SetPosition(XMFLOAT3(-8 + ((i-5)*2.5f), 2.5f, 0));
+	for (int i = 6; i < entities.size(); i++) {
+		entities[i]->GetTransform()->SetPosition(XMFLOAT3(-8 + ((i - 6) * 2.5f), 2.5f, 0));
 	}
 
 	for (int i = 0; i < entities.size(); i++) {
@@ -301,6 +308,80 @@ void Game::CreateGeometry()
 		rotations.push_back(entities[i]->GetTransform()->GetPitchYawRoll());
 		scales.push_back(entities[i]->GetTransform()->GetScale());
 	}
+}
+
+int shadowResolution = 2048;
+float shadowProjSize = 20;
+
+
+void Game::CreateShadowResources()
+{
+	D3D11_TEXTURE2D_DESC shadowDesc = {};
+	shadowDesc.Width = shadowResolution;
+	shadowDesc.Height = shadowResolution;
+	shadowDesc.Usage = D3D11_USAGE_DEFAULT;
+	shadowDesc.ArraySize = 1;
+	shadowDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+	shadowDesc.CPUAccessFlags = 0;
+	shadowDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+	shadowDesc.SampleDesc.Count = 1;
+	shadowDesc.SampleDesc.Quality = 0;
+	shadowDesc.MipLevels = 1;
+	shadowDesc.MiscFlags = 0;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> shadowTexture;
+	device->CreateTexture2D(&shadowDesc, 0, shadowTexture.GetAddressOf());
+
+	D3D11_DEPTH_STENCIL_VIEW_DESC shadowDepthStencilDesc = {};
+	shadowDepthStencilDesc.Format = DXGI_FORMAT_D32_FLOAT;
+	shadowDepthStencilDesc.Texture2D.MipSlice = 0;
+	shadowDepthStencilDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	device->CreateDepthStencilView(shadowTexture.Get(), &shadowDepthStencilDesc, shadowDSV.GetAddressOf());
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC shadowSRVDesc = {};
+	shadowSRVDesc.Format = DXGI_FORMAT_R32_FLOAT;
+	shadowSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	shadowSRVDesc.Texture2D.MipLevels = 1;
+	shadowSRVDesc.Texture2D.MostDetailedMip = 0;
+	device->CreateShaderResourceView(shadowTexture.Get(), &shadowSRVDesc, shadowSRV.GetAddressOf());
+
+
+
+	D3D11_SAMPLER_DESC shadowSamplerDesc = {};
+	shadowSamplerDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+	shadowSamplerDesc.ComparisonFunc = D3D11_COMPARISON_LESS;
+	shadowSamplerDesc.BorderColor[0] = 1.0f;
+	shadowSamplerDesc.BorderColor[1] = 1.0f;
+	shadowSamplerDesc.BorderColor[2] = 1.0f;
+	shadowSamplerDesc.BorderColor[3] = 1.0f;
+
+	shadowSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+	shadowSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
+	shadowSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
+	device->CreateSamplerState(&shadowSamplerDesc, &shadowSampler);
+
+
+
+
+	D3D11_RASTERIZER_DESC shadowRasterizerDesc = {};
+	shadowRasterizerDesc.CullMode = D3D11_CULL_BACK;
+	shadowRasterizerDesc.FillMode = D3D11_FILL_SOLID;
+	shadowRasterizerDesc.DepthClipEnable = true;
+	shadowRasterizerDesc.DepthBiasClamp = 0.0f;
+	shadowRasterizerDesc.DepthBias = 1000;
+	shadowRasterizerDesc.SlopeScaledDepthBias = 1.0f;
+	device->CreateRasterizerState(&shadowRasterizerDesc, &shadowRasterizer);
+
+
+
+
+	XMMATRIX shadowView = XMMatrixLookAtLH(
+		XMVectorSet(0, 20, -20, 0),
+		XMVectorSet(0, 0, 0, 0),
+		XMVectorSet(0, 1, 0, 0));
+	XMStoreFloat4x4(&shadowViewMatrix, shadowView);
+
+	XMMATRIX shProj = XMMatrixOrthographicLH(shadowProjSize, shadowProjSize, 0.1f, 100.0f);
+	XMStoreFloat4x4(&shadowProjectionMatrix, shProj);
 }
 
 
@@ -404,7 +485,14 @@ void Game::Update(float deltaTime, float totalTime)
 {
 	UpdateImGui(deltaTime, totalTime);
 
+
 	cameras[activeCameraIndex]->Update(deltaTime);
+
+	positions[0].z = DirectX::XMScalarSin(totalTime);
+	positions[2].x = DirectX::XMScalarSin(totalTime) * 2;
+	rotations[3].z = totalTime;
+	rotations[3].x = totalTime;
+	rotations[4].z = totalTime;
 
 	for (int i = 0; i < entities.size(); i++) {
 		entities[i]->GetTransform()->SetPosition(positions[i]);
@@ -443,7 +531,7 @@ void Game::Draw(float deltaTime, float totalTime)
 	////loop through our vector of mesh pointers and draw each one!
 	for (std::shared_ptr<Entity> entity : entities)
 	{
-		entity->Draw(context, cameras[activeCameraIndex]);
+		entity->Draw(context, cameras[activeCameraIndex], shadowViewMatrix, shadowProjectionMatrix);
 	}
 
 	sky->Draw(context, cameras[activeCameraIndex]);
@@ -452,21 +540,67 @@ void Game::Draw(float deltaTime, float totalTime)
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
+}
+
+// Frame END
+// - These should happen exactly ONCE PER FRAME
+// - At the very end of the frame (after drawing *everything*)
+{
+	// Present the back buffer to the user
+	//  - Puts the results of what we've drawn onto the window
+	//  - Without this, the user never sees anything
+	bool vsyncNecessary = vsync || !deviceSupportsTearing || isFullscreen;
+	swapChain->Present(
+		vsyncNecessary ? 1 : 0,
+		vsyncNecessary ? 0 : DXGI_PRESENT_ALLOW_TEARING);
+
+	// Must re-bind buffers after presenting, as they become unbound
+	context->OMSetRenderTargets(1, backBufferRTV.GetAddressOf(), depthBufferDSV.Get());
+}
 
 
-	// Frame END
-	// - These should happen exactly ONCE PER FRAME
-	// - At the very end of the frame (after drawing *everything*)
+// -------------------------------------------------------
+// Renders the shadow map from the light's point of view
+// -------------------------------------------------------
+void Game::RenderShadows()
+{
+	// Initial pipeline setup - No RTV necessary - Clear shadow map
+	context->OMSetRenderTargets(0, 0, shadowDSV.Get());
+	context->ClearDepthStencilView(shadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+	context->RSSetState(shadowRasterizer.Get());
+
+	// Need to create a viewport that matches the shadow map resolution
+	D3D11_VIEWPORT viewport = {};
+	viewport.TopLeftX = 0.0f;
+	viewport.TopLeftY = 0.0f;
+	viewport.Width = (float)shadowResolution;
+	viewport.Height = (float)shadowResolution;
+	viewport.MinDepth = 0.0f;
+	viewport.MaxDepth = 1.0f;
+	context->RSSetViewports(1, &viewport);
+
+	// Turn on our shadow map Vertex Shader
+	// and turn OFF the pixel shader entirely
+	std::shared_ptr<SimpleVertexShader> shadowVS = Assets::GetInstance().GetVertexShader(L"ShadowVS");
+	shadowVS->SetShader();
+	shadowVS->SetMatrix4x4("view", shadowViewMatrix);
+	shadowVS->SetMatrix4x4("projection", shadowProjectionMatrix);
+	context->PSSetShader(0, 0, 0); // No PS
+
+	// Loop and draw all entities
+	for (std::shared_ptr<Entity> entity : entities)
 	{
-		// Present the back buffer to the user
-		//  - Puts the results of what we've drawn onto the window
-		//  - Without this, the user never sees anything
-		bool vsyncNecessary = vsync || !deviceSupportsTearing || isFullscreen;
-		swapChain->Present(
-			vsyncNecessary ? 1 : 0,
-			vsyncNecessary ? 0 : DXGI_PRESENT_ALLOW_TEARING);
+		shadowVS->SetMatrix4x4("world", entity->GetTransform()->GetWorldMatrix());
+		shadowVS->CopyAllBufferData();
 
-		// Must re-bind buffers after presenting, as they become unbound
-		context->OMSetRenderTargets(1, backBufferRTV.GetAddressOf(), depthBufferDSV.Get());
+		// Draw the mesh
+		e->GetMesh()->Draw();
 	}
+
+	// After rendering the shadow map, go back to the screen
+	context->OMSetRenderTargets(1, backBufferRTV.GetAddressOf(), depthBufferDSV.Get());
+	viewport.Width = (float)this->windowWidth;
+	viewport.Height = (float)this->windowHeight;
+	context->RSSetViewports(1, &viewport);
+	context->RSSetState(0);
 }

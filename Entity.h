@@ -19,7 +19,7 @@ public:
 	shared_ptr<Material> GetMaterial();
 	void SetMaterial(shared_ptr<Material> _material);
 
-	void Draw(Microsoft::WRL::ComPtr<ID3D11DeviceContext> context, shared_ptr<Camera> camera);
+	void Draw(Microsoft::WRL::ComPtr<ID3D11DeviceContext> context, shared_ptr<Camera> camera, XMFLOAT4X4 shadowViewMatrix, XMFLOAT4X4 shadowProjectionMatrix);
 private:
 
 	shared_ptr<Mesh> mesh;
