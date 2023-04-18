@@ -95,7 +95,6 @@ void Game::Init()
 
 	CreateGeometry();
 
-	CreateShadowResources();
 
 	sky = make_shared<Sky>(meshes[2], sampler, device, context, L"../../Assets/Textures/Skies/Clouds Blue/");
 
@@ -143,7 +142,7 @@ void Game::Init()
 	Light directionalLight1 = {};
 
 	directionalLight1.Type = LIGHT_TYPE_DIRECTIONAL;
-	directionalLight1.Direction = XMFLOAT3(1.0f, 0.0f, 0.0f);
+	directionalLight1.Direction = XMFLOAT3(0.59f, -0.29f, 0.74f);
 	directionalLight1.Color = XMFLOAT3(1.0f, 1.0f, 1.0f);
 	directionalLight1.Intensity = 1.0f;
 
@@ -179,6 +178,7 @@ void Game::Init()
 
 	lights = { directionalLight1, directionalLight2, directionalLight3, pointLight1, pointLight2 };
 
+	CreateShadowResources(directionalLight1);
 
 
 	// Set initial graphics API state
@@ -241,6 +241,9 @@ void Game::LoadShaders()
 		FixPath(L"VertexShader.cso").c_str());
 	pixelShader = std::make_shared<SimplePixelShader>(device, context,
 		FixPath(L"PixelShader.cso").c_str());
+
+	shadowVertexShader = std::make_shared<SimpleVertexShader>(device, context,
+		FixPath(L"ShadowVertexShader.cso").c_str());
 }
 
 
@@ -314,7 +317,7 @@ int shadowResolution = 2048;
 float shadowProjSize = 20;
 
 
-void Game::CreateShadowResources()
+void Game::CreateShadowResources(Light light)
 {
 	D3D11_TEXTURE2D_DESC shadowDesc = {};
 	shadowDesc.Width = shadowResolution;
@@ -371,20 +374,22 @@ void Game::CreateShadowResources()
 	shadowRasterizerDesc.SlopeScaledDepthBias = 1.0f;
 	device->CreateRasterizerState(&shadowRasterizerDesc, &shadowRasterizer);
 
+	SetShadowDirection(light);
 
 
-
-	XMMATRIX shadowView = XMMatrixLookAtLH(
-		XMVectorSet(0, 20, -20, 0),
-		XMVectorSet(0, 0, 0, 0),
-		XMVectorSet(0, 1, 0, 0));
-	XMStoreFloat4x4(&shadowViewMatrix, shadowView);
-
-	XMMATRIX shProj = XMMatrixOrthographicLH(shadowProjSize, shadowProjSize, 0.1f, 100.0f);
-	XMStoreFloat4x4(&shadowProjectionMatrix, shProj);
+	XMMATRIX lightProjection = XMMatrixOrthographicLH(shadowProjSize, shadowProjSize, 0.1f, 100.0f);
+	XMStoreFloat4x4(&shadowProjectionMatrix, lightProjection);
 }
 
+void Game::SetShadowDirection(Light light) {
+	XMVECTOR lightDirection = XMLoadFloat3(&light.Direction);
 
+	XMMATRIX shadowView = XMMatrixLookAtLH(
+		-lightDirection * 20,
+		lightDirection,
+		XMVectorSet(0, 1, 0, 0));
+	XMStoreFloat4x4(&shadowViewMatrix, shadowView);
+}
 
 // --------------------------------------------------------
 // Handle resizing to match the new window size.
@@ -540,23 +545,23 @@ void Game::Draw(float deltaTime, float totalTime)
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
+	// Frame END
+	// - These should happen exactly ONCE PER FRAME
+	// - At the very end of the frame (after drawing *everything*)
+	{
+		// Present the back buffer to the user
+		//  - Puts the results of what we've drawn onto the window
+		//  - Without this, the user never sees anything
+		bool vsyncNecessary = vsync || !deviceSupportsTearing || isFullscreen;
+		swapChain->Present(
+			vsyncNecessary ? 1 : 0,
+			vsyncNecessary ? 0 : DXGI_PRESENT_ALLOW_TEARING);
+
+		// Must re-bind buffers after presenting, as they become unbound
+		context->OMSetRenderTargets(1, backBufferRTV.GetAddressOf(), depthBufferDSV.Get());
+	}
 }
 
-// Frame END
-// - These should happen exactly ONCE PER FRAME
-// - At the very end of the frame (after drawing *everything*)
-{
-	// Present the back buffer to the user
-	//  - Puts the results of what we've drawn onto the window
-	//  - Without this, the user never sees anything
-	bool vsyncNecessary = vsync || !deviceSupportsTearing || isFullscreen;
-	swapChain->Present(
-		vsyncNecessary ? 1 : 0,
-		vsyncNecessary ? 0 : DXGI_PRESENT_ALLOW_TEARING);
-
-	// Must re-bind buffers after presenting, as they become unbound
-	context->OMSetRenderTargets(1, backBufferRTV.GetAddressOf(), depthBufferDSV.Get());
-}
 
 
 // -------------------------------------------------------
@@ -581,20 +586,19 @@ void Game::RenderShadows()
 
 	// Turn on our shadow map Vertex Shader
 	// and turn OFF the pixel shader entirely
-	std::shared_ptr<SimpleVertexShader> shadowVS = Assets::GetInstance().GetVertexShader(L"ShadowVS");
-	shadowVS->SetShader();
-	shadowVS->SetMatrix4x4("view", shadowViewMatrix);
-	shadowVS->SetMatrix4x4("projection", shadowProjectionMatrix);
+	shadowVertexShader->SetShader();
+	shadowVertexShader->SetMatrix4x4("view", shadowViewMatrix);
+	shadowVertexShader->SetMatrix4x4("projection", shadowProjectionMatrix);
 	context->PSSetShader(0, 0, 0); // No PS
 
 	// Loop and draw all entities
 	for (std::shared_ptr<Entity> entity : entities)
 	{
-		shadowVS->SetMatrix4x4("world", entity->GetTransform()->GetWorldMatrix());
-		shadowVS->CopyAllBufferData();
+		shadowVertexShader->SetMatrix4x4("world", entity->GetTransform()->GetWorldMatrix());
+		shadowVertexShader->CopyAllBufferData();
 
 		// Draw the mesh
-		e->GetMesh()->Draw();
+		entity->GetMesh()->Draw();
 	}
 
 	// After rendering the shadow map, go back to the screen

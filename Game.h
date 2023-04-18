@@ -35,7 +35,9 @@ private:
 	shared_ptr<Material> CreatePBRMaterial(const std::wstring& materialName, Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler);
 	void CreateGeometry();
 
-	void CreateShadowResources();
+	void CreateShadowResources(Light light);
+
+	void SetShadowDirection(Light light);
 
 	void RenderShadows();
 
@@ -60,6 +62,8 @@ private:
 	// Shaders and shader-related constructs
 	std::shared_ptr<SimplePixelShader> pixelShader;
 	std::shared_ptr<SimpleVertexShader> vertexShader;
+
+	std::shared_ptr<SimpleVertexShader> shadowVertexShader;
 
 	XMFLOAT3 ambientColor;
 
