@@ -42,8 +42,8 @@ void Entity::Draw(Microsoft::WRL::ComPtr<ID3D11DeviceContext> context, shared_pt
 	vs->SetMatrix4x4("projectionMatrix", camera->GetProjectionMatrix()); // shader’s cbuffer!
 	vs->SetMatrix4x4("worldInvTranspose", transform->GetWorldInverseTransposeMatrix());
 
-	vs->SetMatrix4x4("shadowProjection", shadowProjectionMatrix);
-	vs->SetMatrix4x4("shadowView", shadowViewMatrix);
+	vs->SetMatrix4x4("lightView", shadowViewMatrix);
+	vs->SetMatrix4x4("lightProjection", shadowProjectionMatrix);
 
 	vs->CopyAllBufferData();
 

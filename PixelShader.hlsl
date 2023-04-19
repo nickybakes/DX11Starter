@@ -4,8 +4,9 @@ Texture2D T_Albedo : register(t0);
 Texture2D T_Normal : register(t1);
 Texture2D T_Roughness : register(t2);
 Texture2D T_Metalness : register(t3); // "t" registers for textures
+Texture2D ShadowMap : register(t4);
 SamplerState BasicSampler : register(s0); // "s" registers for samplers
-
+SamplerComparisonState ShadowSampler : register(s1);
 
 
 cbuffer ExternalData : register(b0)
@@ -70,6 +71,16 @@ float3 HandlePointLight(Light light, float3 camPos, float3 worldPos, float3 norm
 // --------------------------------------------------------
 float4 main(VertexToPixel input) : SV_TARGET
 {
+    // Perform the perspective divide (divide by W) ourselves
+    input.shadowMapPos /= input.shadowMapPos.w;
+    // Convert the normalized device coordinates to UVs for sampling
+    float2 shadowUV = input.shadowMapPos.xy * 0.5f + 0.5f;
+    shadowUV.y = 1 - shadowUV.y; // Flip the Y
+    // Grab the distances we need: light-to-pixel and closest-surface
+    float distToLight = input.shadowMapPos.z;
+    
+    float shadowAmount = ShadowMap.SampleCmpLevelZero(ShadowSampler, shadowUV, distToLight).r;
+    
 	// Just return the input color
 	// - This color (like most values passing through the rasterizer) is 
 	//   interpolated for each pixel between the corresponding vertices 
@@ -111,7 +122,7 @@ float4 main(VertexToPixel input) : SV_TARGET
         switch (lights[i].Type)
         {
             case (LIGHT_TYPE_DIRECTIONAL):
-                finalLighting += HandleDirectionalLight(l, cameraPosition, input.worldPosition, input.normal, surfaceColor, roughness, metalness, specularColor);
+                finalLighting += (i == 0 ? shadowAmount : 1.0f) * HandleDirectionalLight(l, cameraPosition, input.worldPosition, input.normal, surfaceColor, roughness, metalness, specularColor);
                 break;
             
             case (LIGHT_TYPE_POINT):

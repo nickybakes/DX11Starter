@@ -35,10 +35,28 @@ private:
 	shared_ptr<Material> CreatePBRMaterial(const std::wstring& materialName, Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler);
 	void CreateGeometry();
 
+
+	/// <summary>
+	/// Creates all shadow related resources for shadows from the light
+	/// </summary>
+	/// <param name="light">The light you want to cast shadows</param>
 	void CreateShadowResources(Light light);
 
+	/// <summary>
+	/// Specifically creates the textures (DSV and SRV) for the shadowmaps
+	/// </summary>
+	/// <param name="release">If true then it releases the old shadow maps. Only make true if you are updating resolution</param>
+	void CreateShadowTextures(bool release);
+
+	/// <summary>
+	/// Sets the view and projection matrix for the shadow camera from the light
+	/// </summary>
+	/// <param name="light">The light you want to cast shadows</param>
 	void SetShadowDirection(Light light);
 
+	/// <summary>
+	/// Sets proper shadow shaders and renders shadows to the depth buffer
+	/// </summary>
 	void RenderShadows();
 
 	/// <summary>

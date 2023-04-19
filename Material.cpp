@@ -42,11 +42,17 @@ void Material::SetPixelShader(std::shared_ptr<SimplePixelShader> _pixelShader)
 
 void Material::AddTextureSRV(std::string key, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv)
 {
+	if (textureSRVs.count(key)) {
+		textureSRVs[key] = srv;
+	}
 	textureSRVs.insert({ key, srv });
 }
 
 void Material::AddSampler(std::string key, Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler)
 {
+	if (samplers.count(key)) {
+		samplers[key] = sampler;
+	}
 	samplers.insert({ key, sampler });
 }
 
