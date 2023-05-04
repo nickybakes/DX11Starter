@@ -13,7 +13,7 @@
 #include "Sky.h"
 
 
-class Game 
+class Game
 	: public DXCore
 {
 
@@ -31,7 +31,7 @@ public:
 private:
 
 	// Initialization helper methods - feel free to customize, combine, remove, etc.
-	void LoadShaders(); 
+	void LoadShaders();
 	shared_ptr<Material> CreatePBRMaterial(const std::wstring& materialName, Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler);
 	void CreateGeometry();
 
@@ -60,6 +60,17 @@ private:
 	void RenderShadows();
 
 	/// <summary>
+	/// Creates all resources for post processing
+	/// </summary>
+	/// <param name="remakeTexture">Make true when recreating PP resources, will only remake the SRV and RTV</param>
+	void CreatePostProcessingResurces(bool remakeTexture);
+
+	/// <summary>
+	/// Resets post processing srv, and rtv ComPtrs and then recreates the PP texture wit hnew screen size
+	/// </summary>
+	void ResetAndRecreatePostProcessingTexture();
+
+	/// <summary>
 	/// Updates the ImGui at the beginning of each frame.
 	/// </summary>
 	void UpdateImGui(float deltaTime, float totalTime);
@@ -76,7 +87,7 @@ private:
 	//  - This is a smart pointer for objects that abide by the
 	//     Component Object Model, which DirectX objects do
 	//  - More info here: https://github.com/Microsoft/DirectXTK/wiki/ComPtr
-	
+
 	// Shaders and shader-related constructs
 	std::shared_ptr<SimplePixelShader> pixelShader;
 	std::shared_ptr<SimpleVertexShader> vertexShader;
@@ -93,6 +104,16 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> shadowSampler;
 	DirectX::XMFLOAT4X4 shadowViewMatrix;
 	DirectX::XMFLOAT4X4 shadowProjectionMatrix;
+
+
+	//needed for post processing
+	// Resources that are shared among all post processes
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> ppSampler;
+	std::shared_ptr<SimpleVertexShader> ppVS;
+	// Resources that are tied to a particular post process
+	std::shared_ptr<SimplePixelShader> ppPS;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> ppRTV; // For rendering
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> ppSRV; // For sampling
 
 
 };

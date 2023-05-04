@@ -162,6 +162,12 @@
     <FxCompile Include="ShadowVertexShader.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="PostProcessVertexShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="PostProcessPixelShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="ShaderIncludes.hlsli">

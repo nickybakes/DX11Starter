@@ -76,6 +76,8 @@ void Game::Init()
 	//  - You'll be expanding and/or replacing these later
 	LoadShaders();
 
+	CreatePostProcessingResurces(false);
+
 	//create sampler state for textures
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler;
 	D3D11_SAMPLER_DESC samplerDescription = {};
@@ -249,6 +251,12 @@ void Game::LoadShaders()
 
 	shadowVertexShader = std::make_shared<SimpleVertexShader>(device, context,
 		FixPath(L"ShadowVertexShader.cso").c_str());
+
+	ppVS = std::make_shared<SimpleVertexShader>(device, context,
+		FixPath(L"PostProcessVertexShader.cso").c_str());
+
+	ppPS = std::make_shared<SimplePixelShader>(device, context,
+		FixPath(L"PostProcessPixelShader.cso").c_str());
 }
 
 
@@ -410,6 +418,62 @@ void Game::SetShadowDirection(Light light) {
 	XMStoreFloat4x4(&shadowProjectionMatrix, lightProjection);
 }
 
+
+void Game::CreatePostProcessingResurces(bool remakeTexture)
+{
+	if (!remakeTexture) {
+		// Sampler state for post processing
+		D3D11_SAMPLER_DESC ppSampDesc = {};
+		ppSampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+		ppSampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		ppSampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+		ppSampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		ppSampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+		device->CreateSamplerState(&ppSampDesc, ppSampler.GetAddressOf());
+	}
+
+	// Describe the texture we're creating
+	D3D11_TEXTURE2D_DESC textureDesc = {};
+	textureDesc.Width = windowWidth;
+	textureDesc.Height = windowHeight;
+	textureDesc.ArraySize = 1;
+	textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	textureDesc.CPUAccessFlags = 0;
+	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	textureDesc.MipLevels = 1;
+	textureDesc.MiscFlags = 0;
+	textureDesc.SampleDesc.Count = 1;
+	textureDesc.SampleDesc.Quality = 0;
+	textureDesc.Usage = D3D11_USAGE_DEFAULT;
+	// Create the resource (no need to track it after the views are created below)
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> ppTexture;
+	device->CreateTexture2D(&textureDesc, 0, ppTexture.GetAddressOf());
+
+	// Create the Render Target View
+	D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+	rtvDesc.Format = textureDesc.Format;
+	rtvDesc.Texture2D.MipSlice = 0;
+	rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+	device->CreateRenderTargetView(
+		ppTexture.Get(),
+		&rtvDesc,
+		ppRTV.ReleaseAndGetAddressOf());
+	// Create the Shader Resource View
+	// By passing it a null description for the SRV, we
+	// get a "default" SRV that has access to the entire resource
+	device->CreateShaderResourceView(
+		ppTexture.Get(),
+		0,
+		ppSRV.ReleaseAndGetAddressOf());
+}
+
+void Game::ResetAndRecreatePostProcessingTexture()
+{
+	ppRTV.Reset();
+	ppSRV.Reset();
+	CreatePostProcessingResurces(true);
+}
+
 // --------------------------------------------------------
 // Handle resizing to match the new window size.
 //  - DXCore needs to resize the back buffer
@@ -425,6 +489,8 @@ void Game::OnResize()
 	{
 		cam->UpdateProjectionMatrix((float)this->windowWidth / this->windowHeight);
 	}
+
+	ResetAndRecreatePostProcessingTexture();
 }
 
 bool showDemoWindow;
@@ -555,6 +621,7 @@ void Game::Draw(float deltaTime, float totalTime)
 {
 	RenderShadows();
 
+
 	// Frame START
 	// - These things should happen ONCE PER FRAME
 	// - At the beginning of Game::Draw() before drawing *anything*
@@ -565,6 +632,10 @@ void Game::Draw(float deltaTime, float totalTime)
 
 		// Clear the depth buffer (resets per-pixel occlusion information)
 		context->ClearDepthStencilView(depthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+		//PRE RENDER
+
+		context->ClearRenderTargetView(ppRTV.Get(), bgColor);
 	}
 
 	//pass in our current total time for this frame
@@ -581,6 +652,16 @@ void Game::Draw(float deltaTime, float totalTime)
 	}
 
 	sky->Draw(context, cameras[activeCameraIndex]);
+
+	context->OMSetRenderTargets(1, backBufferRTV.GetAddressOf(), 0);
+
+	// Activate shaders and bind resources
+	// Also set any required cbuffer data (not shown)
+	ppVS->SetShader();
+	ppPS->SetShader();
+	ppPS->SetShaderResourceView("Pixels", ppSRV.Get());
+	ppPS->SetSamplerState("ClampSampler", ppSampler.Get());
+	context->Draw(3, 0); // Draw exactly 3 vertices (one triangle)
 
 	//draw ImGui
 	ImGui::Render();
@@ -650,6 +731,6 @@ void Game::RenderShadows()
 	viewport.Width = (float)this->windowWidth;
 	viewport.Height = (float)this->windowHeight;
 	context->RSSetViewports(1, &viewport);
-	context->OMSetRenderTargets(1, backBufferRTV.GetAddressOf(), depthBufferDSV.Get());
-
+	context->OMSetRenderTargets(1, ppRTV.GetAddressOf(), depthBufferDSV.Get());
 }
+
