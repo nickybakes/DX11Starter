@@ -77,6 +77,7 @@ void Game::Init()
 	LoadShaders();
 
 	CreatePostProcessingResurces(false);
+	CalculatePixelSize();
 
 	//create sampler state for textures
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler;
@@ -419,6 +420,11 @@ void Game::SetShadowDirection(Light light) {
 }
 
 
+
+int blurRadius;
+float pixelWidth;
+float pixelHeight;
+
 void Game::CreatePostProcessingResurces(bool remakeTexture)
 {
 	if (!remakeTexture) {
@@ -474,6 +480,12 @@ void Game::ResetAndRecreatePostProcessingTexture()
 	CreatePostProcessingResurces(true);
 }
 
+void Game::CalculatePixelSize() 
+{
+	pixelWidth = 1.0f / (float)windowWidth;
+	pixelHeight = 1.0f / (float)windowHeight;
+}
+
 // --------------------------------------------------------
 // Handle resizing to match the new window size.
 //  - DXCore needs to resize the back buffer
@@ -491,6 +503,7 @@ void Game::OnResize()
 	}
 
 	ResetAndRecreatePostProcessingTexture();
+	CalculatePixelSize();
 }
 
 bool showDemoWindow;
@@ -541,6 +554,8 @@ void Game::UpdateImGui(float deltaTime, float totalTime)
 	if (ImGui::SliderFloat("FOV", cameras[activeCameraIndex]->GetFOVPointer(), XM_PIDIV4, XM_PIDIV2)) {
 		cameras[activeCameraIndex]->UpdateProjectionMatrix((float)this->windowWidth / this->windowHeight);
 	}
+
+	ImGui::SliderInt("Blur Radius", &blurRadius, 0, 16);
 
 	if (ImGui::BeginCombo("Shadow Resolution", std::to_string(shadowResolution).c_str()))
 	{
@@ -658,9 +673,14 @@ void Game::Draw(float deltaTime, float totalTime)
 	// Activate shaders and bind resources
 	// Also set any required cbuffer data (not shown)
 	ppVS->SetShader();
+
 	ppPS->SetShader();
 	ppPS->SetShaderResourceView("Pixels", ppSRV.Get());
 	ppPS->SetSamplerState("ClampSampler", ppSampler.Get());
+	ppPS->SetInt("blurRadius", blurRadius);
+	ppPS->SetFloat("pixelWidth", pixelWidth);
+	ppPS->SetFloat("pixelHeight", pixelHeight);
+	ppPS->CopyAllBufferData();
 	context->Draw(3, 0); // Draw exactly 3 vertices (one triangle)
 
 	//draw ImGui

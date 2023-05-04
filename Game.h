@@ -66,6 +66,11 @@ private:
 	void CreatePostProcessingResurces(bool remakeTexture);
 
 	/// <summary>
+	/// Calculates and stores a pixel's width and height in UV space
+	/// </summary>
+	void CalculatePixelSize();
+
+	/// <summary>
 	/// Resets post processing srv, and rtv ComPtrs and then recreates the PP texture wit hnew screen size
 	/// </summary>
 	void ResetAndRecreatePostProcessingTexture();

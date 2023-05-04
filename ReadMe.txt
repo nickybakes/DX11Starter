@@ -1,3 +1,1 @@
-I added support for "roughness" maps. These actually act as specular scale maps.
-The effect is subtle but it adds some nice detail. The bricks on the sphere all reflect different amounts from each other. The blue tarp reflects with scratches and detail (though with a normal map later it would look a lot better). And the window only reflects on the glass parts (look at the sides of the cube that are in shader).
-The Roughness maps will be used for actualy roughness when we go into PBR.
+I chose Option 1: add a blur post process effect. It starts with the blur radius at 0, but you can go up to 16 with the slider in the GUI.
